@@ -1,8 +1,10 @@
+use serde::{Deserialize, Serialize};
+
+use super::KeyError;
 use super::encrypted_key::EncryptedKey;
-use super::key::{CipherError, Key};
+use super::key::Key;
 use super::key_pair::KeyPair;
 use super::types::{Cipher, Mac};
-use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize)]
 pub struct EncryptedKeyPair {
@@ -10,7 +12,7 @@ pub struct EncryptedKeyPair {
     mac_key: EncryptedKey<Mac>,
 }
 
-type Result<T> = std::result::Result<T, CipherError>;
+type Result<T> = std::result::Result<T, KeyError>;
 
 impl EncryptedKeyPair {
     pub fn new(cipher_key: EncryptedKey<Cipher>, mac_key: EncryptedKey<Mac>) -> Self {
@@ -31,6 +33,6 @@ impl EncryptedKeyPair {
         Ok(KeyPair::new(
             &self.cipher_key.try_to_key(cipher_key)?,
             &self.mac_key.try_to_key(cipher_key)?,
-        ))
+        )?)
     }
 }
