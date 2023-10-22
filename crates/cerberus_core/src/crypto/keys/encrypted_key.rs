@@ -7,8 +7,8 @@ use super::types::{Cipher, KeyState};
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct EncryptedKey<T: KeyState> {
-    key: Vec<u8>,
-    nonce: Vec<u8>,
+    key: Box<[u8]>,
+    nonce: Box<[u8]>,
     _kind: PhantomData<T>,
 }
 
