@@ -32,7 +32,7 @@ impl<State: KeyState> Key<State> {
 
     pub fn new_random() -> Self {
         let key =
-            Zeroizing::new(Vec::from(random_bytes(&mut OsRng, State::KEY_SIZE)).into_boxed_slice());
+            Zeroizing::new(random_bytes(&mut OsRng, State::KEY_SIZE).into_boxed_slice());
 
         Self {
             state: State::with_key(&key),
@@ -60,11 +60,11 @@ impl<T: KeyState> Deref for Key<T> {
 impl Key<Cipher> {
     pub fn encrypt(&self, nonce: &[u8], plaintext: &[u8]) -> Result<Vec<u8>> {
         let cipher = &self.state.0;
-        Ok(cipher.encrypt(nonce.into(), plaintext)?)
+        cipher.encrypt(nonce.into(), plaintext)
     }
 
     pub fn decrypt(&self, nonce: &[u8], ciphertext: &[u8]) -> Result<Vec<u8>> {
         let cipher = &self.state.0;
-        Ok(cipher.decrypt(nonce.into(), ciphertext)?)
+        cipher.decrypt(nonce.into(), ciphertext)
     }
 }

@@ -22,8 +22,8 @@ impl EncryptedKeyPair {
 
     pub fn new_random(cipher_key: &Key<Cipher>) -> Result<Self> {
         Ok(Self::new(
-            EncryptedKey::new_random(&cipher_key)?,
-            EncryptedKey::new_random(&cipher_key)?,
+            EncryptedKey::new_random(cipher_key)?,
+            EncryptedKey::new_random(cipher_key)?,
         ))
     }
 

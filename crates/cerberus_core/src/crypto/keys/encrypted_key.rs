@@ -1,8 +1,9 @@
-use super::key::{CipherError, Key};
-use super::types::{Cipher, KeyState};
 use zeroize::Zeroizing;
 use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
+
+use super::key::{CipherError, Key};
+use super::types::{Cipher, KeyState};
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct EncryptedKey<T: KeyState> {
@@ -22,7 +23,7 @@ impl<T: KeyState> EncryptedKey<T> {
 
     pub fn new_random(cipher_key: &Key<Cipher>) -> Result<Self, CipherError> {
         let key = Key::new_random();
-        Ok(key.try_to_encrypted_key(&cipher_key)?)
+        key.try_to_encrypted_key(cipher_key)
     }
 
     pub fn try_to_key(&self, cipher_key: &Key<Cipher>) -> Result<Key<T>, CipherError> {

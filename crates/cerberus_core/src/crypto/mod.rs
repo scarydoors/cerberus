@@ -1,6 +1,6 @@
 use rand::{CryptoRng, RngCore};
 
-pub mod key;
+pub mod keys;
 
 pub fn random_bytes(mut rng: impl CryptoRng + RngCore, length: usize) -> Vec<u8> {
     let mut result = vec![0u8; length];

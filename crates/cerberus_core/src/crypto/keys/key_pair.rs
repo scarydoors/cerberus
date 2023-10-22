@@ -4,8 +4,8 @@ use zeroize::Zeroizing;
 use sha2::Sha256;
 use thiserror::Error;
 
-use crate::crypto::key::types::{Cipher, Mac};
-use crate::crypto::key::Key;
+use super::types::{Cipher, Mac};
+use super::key::Key;
 
 pub struct KeyPair {
     cipher_key: Key<Cipher>,
@@ -47,8 +47,8 @@ impl KeyPair {
         let mut keys = Zeroizing::new(Vec::with_capacity(64));
         let (encryption_key, mac_key) = keys.split_at_mut(32);
 
-        hkdf.expand(&Self::ENCRYPTION_KEY_INFO, encryption_key)?;
-        hkdf.expand(&Self::MAC_KEY_INFO, mac_key)?;
+        hkdf.expand(Self::ENCRYPTION_KEY_INFO, encryption_key)?;
+        hkdf.expand(Self::MAC_KEY_INFO, mac_key)?;
 
         Ok(Self::new(encryption_key, mac_key))
     }

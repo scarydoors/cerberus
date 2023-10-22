@@ -18,7 +18,7 @@ pub mod types {
 
     impl KeyState for Mac {
         const KEY_SIZE: usize = 32;
-        fn with_key(key: &[u8]) -> Self {
+        fn with_key(_key: &[u8]) -> Self {
             unimplemented!();
         }
     }
