@@ -1,0 +1,12 @@
+[package]
+name = "cerberus"
+version = "0.1.0"
+edition = "2021"
+license.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cerberus_core = { path = "../cerberus_core" }
+rand = "0.8.5"
+serde_json = "1.0.107"

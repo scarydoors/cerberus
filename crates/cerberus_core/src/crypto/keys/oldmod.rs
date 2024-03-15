@@ -12,11 +12,13 @@ pub enum KeyError {
     #[error("error using cipher: {0}")]
     CipherError(#[from] chacha20poly1305::Error),
     #[error("error when initializing hmac instance: {0}")]
-    HmacError(#[from] hmac::digest::InvalidLength),
+    HmacInitError(#[from] hmac::digest::InvalidLength),
     #[error("error when hashing password: {0}")]
     HashError(#[from] argon2::Error),
     #[error("error when deriving secret keys from password: {0}")]
     DeriveError(#[from] hkdf::InvalidLength),
+    #[error("mac is invalid or empty: {0}")]
+    MacVerifyError(#[from] hmac::digest::MacError),
 }
 
 pub fn generate_nonce() -> Vec<u8> {
@@ -29,7 +31,7 @@ pub mod types {
     use sha2::Sha256;
     use super::KeyError;
     
-    pub struct Mac(pub(crate) Hmac<Sha256>);
+    pub struct Mac;
 
     pub struct Cipher(pub(crate) XChaCha20Poly1305);
 
@@ -43,7 +45,7 @@ pub mod types {
         const KEY_SIZE: usize = 32;
 
         fn with_key(key: &[u8]) -> Result<Self, KeyError> {
-            Ok(Self(HmacSha256::new_from_slice(key)?))
+            Ok(Self)
         }
     }
     impl KeyState for Cipher {

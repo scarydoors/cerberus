@@ -1,11 +1,14 @@
 use std::ops::Deref;
 use chacha20poly1305::aead::Aead;
+use hmac::{Hmac, Mac as HmacMac};
 use rand::rngs::OsRng;
+use sha2::Sha256;
 use zeroize::Zeroizing;
 
 use crate::crypto::random_bytes;
 use super::KeyError;
 
+use super::types::Mac;
 use super::{
     encrypted_key::EncryptedKey,
     types::{Cipher, KeyState},
@@ -68,3 +71,11 @@ impl Key<Cipher> {
         Ok(cipher.decrypt(nonce.into(), ciphertext)?)
     }
 }
+
+impl Key<Mac> {
+    pub fn new_hmac(&self) -> Hmac<Sha256> {
+        Hmac::new_from_slice(&self.key).expect("hmac key is correct length")
+    }
+}
+
+// TODO: ADD MAC CONVENIENCE METHODS TOMORROW !!!!111!!1!

@@ -11,9 +11,10 @@ argon2 = { version = "0.5.2", features = ["std"] }
 bincode = "1.3.3"
 chacha20poly1305 = { version = "0.10.1", features = ["std"] }
 hkdf = { version = "0.12.3", features = ["std"] }
-hmac = { version = "0.12.1", features = ["std"] }
+hmac = { version = "0.12.1", features = ["std", "reset"] }
 rand = "0.8.5"
 serde = { version = "1.0.189", features = ["derive"] }
 sha2 = { version = "0.10.8", features = ["std"] }
 thiserror = "1.0.49"
+time = { version = "0.3.30", features = ["serde"] }
 zeroize = "1.6.0"
