@@ -3,26 +3,26 @@
 @import 'tailwindcss/utilities';
 
 @layer base {
-	body {
-		height: 100vh;
-		width: 100vw;
+  body {
+    height: 100vh;
+    width: 100vw;
 
-		user-select: none;
-		overflow-y: hidden;
-	}
+    user-select: none;
+    overflow-y: hidden;
+  }
 
-	@font-face {
-		font-family: Inter;
-		font-style: normal;
-		font-weight: 100 900;
-		font-display: swap;
-		src: url($lib/assets/fonts/Inter.woff2) format("woff2");
-	}
-	@font-face {
-		font-family: Inter;
-		font-style: italic;
-		font-weight: 100 900;
-		font-display: swap;
-		src: url($lib/assets/fonts/Inter-Italic.woff2) format("woff2");
-	}
+  @font-face {
+    font-family: Inter;
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url($lib/assets/fonts/Inter.woff2) format('woff2');
+  }
+  @font-face {
+    font-family: Inter;
+    font-style: italic;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url($lib/assets/fonts/Inter-Italic.woff2) format('woff2');
+  }
 }
