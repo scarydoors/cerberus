@@ -1,11 +1,8 @@
 <script lang="ts">
-  import OnboardingEnterMasterPassword from "./OnboardingEnterMasterPassword.svelte";
-import OnboardingSelectDirectory from "./OnboardingSelectDirectory.svelte";
+  import OnboardingEnterMasterPassword from './OnboardingEnterMasterPassword.svelte';
+  import OnboardingSelectDirectory from './OnboardingSelectDirectory.svelte';
 
-  const steps = [
-    'select-directory',
-    'enter-master-password',
-  ];
+  const steps = ['select-directory', 'enter-master-password'];
 
   type Steps = typeof steps;
   type Step = Steps[number];
@@ -25,38 +22,41 @@ import OnboardingSelectDirectory from "./OnboardingSelectDirectory.svelte";
 
   function previousStep() {
     activeStepIndex = Math.max(activeStepIndex - 1, 0);
-  };
+  }
 
   function nextStep() {
     activeStepIndex = Math.min(activeStepIndex + 1, steps.length - 1);
   }
-
 </script>
 
-<div class="flex h-full flex-col pt-12 pb-6 px-10 bg-stone-100 overflow-x-hidden items-center w-full justify-between">
+<div
+  class="flex h-full w-full flex-col items-center justify-between overflow-x-hidden bg-stone-100 px-10 pb-6 pt-12"
+>
   {#if activeStep === 'select-directory'}
     <OnboardingSelectDirectory bind:directory={vaultDirectory} bind:valid={isStepValid} />
   {:else if activeStep === 'enter-master-password'}
     <OnboardingEnterMasterPassword bind:password={masterPassword} bind:valid={isStepValid} />
   {/if}
-  <div class="flex space-x-1 w-full">
+  <div class="flex w-full space-x-1">
     <div class="w-1/2">
-    {#if hasPreviousStep}
-      <button class="bg-blue-500 text-white py-2 px-4 w-full" onclick={previousStep}>
-        Back
-      </button>
-    {/if}
-      </div>
+      {#if hasPreviousStep}
+        <button class="w-full bg-blue-500 px-4 py-2 text-white" onclick={previousStep}>
+          Back
+        </button>
+      {/if}
+    </div>
     <div class="w-1/2">
       {#if showFinishButton}
-        <button class="bg-blue-500 text-white py-2 px-4 w-full">
-          Finish
-        </button>
+        <button class="w-full bg-blue-500 px-4 py-2 text-white"> Finish </button>
       {:else if hasNextStep}
-        <button class="bg-blue-500 text-white py-2 px-4 w-full" disabled={!isStepValid} onclick={nextStep}>
+        <button
+          class="w-full bg-blue-500 px-4 py-2 text-white"
+          disabled={!isStepValid}
+          onclick={nextStep}
+        >
           Next
         </button>
       {/if}
-      </div>
+    </div>
   </div>
 </div>
