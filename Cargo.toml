@@ -1,0 +1,6 @@
+[workspace]
+members = [
+  "crates/cerberus-store",
+  "crates/cerberus-tauri",
+]
+resolver = "2"
