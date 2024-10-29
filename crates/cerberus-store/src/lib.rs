@@ -1,14 +1,12 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+use std::{future::Future, path::Path};
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+use sqlx::{sqlite::SqliteConnectOptions, Error, SqlitePool};
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+
+pub fn create_database(filename: impl AsRef<Path>) -> impl Future< Output = Result<SqlitePool, Error>> {
+    let options = SqliteConnectOptions::new()
+        .filename(filename)
+        .create_if_missing(true);
+
+    SqlitePool::connect_with(options)
 }

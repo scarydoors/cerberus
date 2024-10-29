@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { invoke } from '@tauri-apps/api/core';
   import OnboardingEnterMasterPassword from './OnboardingEnterMasterPassword.svelte';
   import OnboardingSelectDirectory from './OnboardingSelectDirectory.svelte';
 
@@ -27,6 +28,10 @@
   function nextStep() {
     activeStepIndex = Math.min(activeStepIndex + 1, steps.length - 1);
   }
+
+async function initStore() {
+  await invoke('init_store', { path: vaultDirectory });
+}
 </script>
 
 <div
@@ -47,7 +52,7 @@
     </div>
     <div class="w-1/2">
       {#if showFinishButton}
-        <button class="w-full bg-blue-500 px-4 py-2 text-white"> Finish </button>
+        <button class="w-full bg-blue-500 px-4 py-2 text-white" onclick={initStore}> Finish </button>
       {:else if hasNextStep}
         <button
           class="w-full bg-blue-500 px-4 py-2 text-white"

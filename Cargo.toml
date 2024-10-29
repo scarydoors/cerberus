@@ -4,3 +4,6 @@ members = [
   "crates/cerberus-tauri",
 ]
 resolver = "2"
+
+[workspace.dependencies]
+cerberus-store = { path = "crates/cerberus-store" }

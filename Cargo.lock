@@ -477,6 +477,7 @@ dependencies = [
 name = "cerberus"
 version = "0.1.0"
 dependencies = [
+ "cerberus-store",
  "serde",
  "serde_json",
  "tauri",
