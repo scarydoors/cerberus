@@ -1,33 +1,33 @@
 <script lang="ts">
-  import { open } from '@tauri-apps/plugin-dialog';
+import { open } from '@tauri-apps/plugin-dialog';
 
-  type Props = {
-    directory: string;
-    valid: boolean;
-  };
+type Props = {
+  directory: string;
+  valid: boolean;
+};
 
-  let { directory = $bindable(), valid = $bindable() }: Props = $props();
+let { directory = $bindable(), valid = $bindable() }: Props = $props();
 
-  async function openFile() {
-    const file = await open({
-      multiple: false,
-      directory: true
-    });
-
-    if (file) {
-      directory = file;
-    }
-  }
-
-  $effect(() => {
-    if (directory.length > 0) {
-      valid = true;
-    } else {
-      valid = false;
-    }
+async function openFile() {
+  const file = await open({
+    multiple: false,
+    directory: true
   });
 
-  let shouldUseDefaultLocation: boolean = $state(true);
+  if (file) {
+    directory = file;
+  }
+}
+
+$effect(() => {
+  if (directory.length > 0) {
+    valid = true;
+  } else {
+    valid = false;
+  }
+});
+
+let shouldUseDefaultLocation: boolean = $state(true);
 </script>
 
 <h1 class="text-center text-3xl font-semibold">Select a location for your vaults.</h1>
