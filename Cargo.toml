@@ -6,4 +6,7 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
+thiserror = "1.0"
+anyhow = "1.0"
+
 cerberus-store = { path = "crates/cerberus-store" }

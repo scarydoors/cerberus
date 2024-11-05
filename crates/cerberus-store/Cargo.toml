@@ -5,3 +5,5 @@ edition = "2021"
 
 [dependencies]
 sqlx = { version = "0.8.2", features = ["runtime-tokio", "sqlite", "derive", "macros", "migrate"] }
+
+thiserror.workspace = true
