@@ -13,13 +13,10 @@ async fn init_store(path: String) -> Result<(), ()> {
     let mut filename = PathBuf::from(path);
     filename.push("store.sqlite3");
 
-    let result = create_database(filename).await;
+    let result = create_database(filename).await.unwrap();
 
     // don't do this!
-    match result {
-        Ok(_) => Ok(()),
-        Err(_) => Err(()),
-    }
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
