@@ -15,12 +15,15 @@ use chacha20poly1305::{
 
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
 
+mod store;
+mod nonce_counter;
+
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("unable to create database: {0}")]
     DatabaseError(#[from] sqlx::Error),
 
-    #[error("unable to hash pasword")]
+    #[error("unable to hash password")]
     PasswordHashingFailed(#[from] argon2::password_hash::Error),
 
     #[error("unable to encrypt data")]
