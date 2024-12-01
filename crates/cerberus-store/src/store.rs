@@ -18,7 +18,7 @@ impl Store {
 
         MIGRATOR
             .run(&pool)
-            .await.map_err(|err| Error::from(sqlx::Error::from(err)));
+            .await.map_err(|err| sqlx::Error::from(err))?;
 
         Ok(Store {
             pool

@@ -55,11 +55,15 @@ pub async fn create_master_encryption_key(pool: &SqlitePool, password: &[u8]) ->
     let nonce = XChaCha20Poly1305::generate_nonce(&mut OsRng);
     let master_key = XChaCha20Poly1305::generate_key(&mut OsRng);
 
-    let master_key_enc = cipher.encrypt(&nonce, master_key.as_slice())?;
 
-    sqlx::query("INSERT INTO keys (encrypted_key, nonce) VALUES (?, ?)")
-        .bind(master_key_enc)
-        .bind(nonce.as_slice())
+    let master_key_enc = cipher.encrypt(&nonce, master_key.as_slice())?;
+    let nonce_slice = nonce.as_slice();
+
+    sqlx::query!(
+        "INSERT INTO keys (encrypted_key, nonce) VALUES (?, ?)",
+        master_key_enc,
+        nonce_slice
+    )
         .fetch_all(pool)
         .await?;
 
