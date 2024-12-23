@@ -57,7 +57,7 @@ mod tests {
 
         for _ in 0..24 {
             for _ in 0..255 {
-                nonce_counter.increment().expect("haven't iterated enough times to exceed the counter");
+                nonce_counter.increment().expect("haven't iterated enough times to exhaust the counter");
             }
         }
 

@@ -9,9 +9,9 @@ struct Store {
 pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
 
 impl Store {
-    pub async fn new(filename: impl AsRef<Path>) -> Result<Self, Error> {
+    pub async fn new(path: impl AsRef<Path>) -> Result<Self, Error> {
         let options = SqliteConnectOptions::new()
-            .filename(filename)
+            .filename(path)
             .create_if_missing(true);
 
         let pool = SqlitePool::connect_with(options).await?;
