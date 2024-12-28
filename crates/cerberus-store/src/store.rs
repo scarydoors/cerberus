@@ -1,6 +1,10 @@
-use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
+use sqlx::{
+    sqlite::SqliteConnectOptions,
+    SqlitePool,
+};
 use std::path::Path;
 use crate::Error;
+use crate::generate_salt;
 
 struct Store {
     pool: SqlitePool,
@@ -23,5 +27,18 @@ impl Store {
         Ok(Store {
             pool
         })
+    }
+
+    pub async fn create_vault(&self, name: &str, password: &str) -> Result<(), Error> {
+        let salt = generate_salt();
+        sqlx::query(
+            "INSERT INTO vaults(name, salt) VALUES (?, ?)"
+        )
+            .bind(name)
+            .bind(salt)
+            .fetch_all(&self.pool)
+            .await?;
+
+        Ok(())
     }
 }

@@ -6,14 +6,10 @@ struct SymmetricKey {
 }
 
 impl SymmetricKey {
-    pub fn new(key: &[u8], nonce: &[u8]) -> Self {
+    pub fn new(key: &[u8], next_nonce: &[u8]) -> Self {
         Self {
             key: key.to_vec(),
-            nonce_counter: NonceCounter::new(nonce)
+            nonce_counter: NonceCounter::new(next_nonce)
         }
-    }
-
-    pub fn from_encrypted_key(encrypted_key: &[u8], nonce: &[u8], symmetric_key: &SymmetricKey) -> Self {
-
     }
 }

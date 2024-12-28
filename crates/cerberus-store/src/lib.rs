@@ -3,7 +3,7 @@ use std::path::Path;
 use rand::rngs::OsRng;
 use argon2::{
     password_hash::{
-        PasswordHash, PasswordHasher, PasswordVerifier, SaltString
+        PasswordHash, PasswordHasher, PasswordVerifier, Salt, SaltString
     },
     Argon2,
 };
@@ -46,40 +46,36 @@ pub async fn create_database(filename: impl AsRef<Path>) -> Result<(), Error> {
         .await.map_err(|err| sqlx::Error::from(err).into())
 }
 
-pub async fn create_master_encryption_key(pool: &SqlitePool, password: &[u8]) -> Result<(), Error> {
-    let salt = SaltString::generate(&mut OsRng);
-    let password_hash_data = Argon2::default().hash_password(password, &salt).unwrap();
-
-    let key = password_hash_data.hash.unwrap();
-
-    let cipher = XChaCha20Poly1305::new(key.as_bytes().into());
-
-    let nonce = XChaCha20Poly1305::generate_nonce(&mut OsRng);
-    let master_key = XChaCha20Poly1305::generate_key(&mut OsRng);
-
-
-    let master_key_enc = cipher.encrypt(&nonce, master_key.as_slice())?;
-    let nonce_slice = nonce.as_slice();
-
-    sqlx::query!(
-        "INSERT INTO keys (encrypted_key, nonce) VALUES (?, ?)",
-        master_key_enc,
-        nonce_slice
-    )
-        .fetch_all(pool)
-        .await?;
-
-    Ok(())
+fn generate_salt() -> String {
+    SaltString::generate(&mut OsRng).to_string()
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+fn hash_password(password: &[u8], salt: &str) -> Vec<u8> {
+    let salt = Salt::from_b64(salt).expect("salt is the correct format");
+    let password_hash_data = Argon2::default().hash_password(password, salt).unwrap();
 
-    #[sqlx::test(migrator = "MIGRATOR")]
-    async fn can_create_master_encryption_key_in_database(pool: SqlitePool) {
-        let password = b"what the hell man";
+    let key = password_hash_data.hash.expect("hash_password was successful");
 
-        create_master_encryption_key(&pool, password).await.unwrap();
-    }
+    key.as_bytes().to_owned()
 }
+
+//pub async fn create_master_encryption_key(pool: &SqlitePool, password: &[u8]) -> Result<(), Error> {
+//    let cipher = XChaCha20Poly1305::new(key.as_bytes().into());
+//
+//    let nonce = XChaCha20Poly1305::generate_nonce(&mut OsRng);
+//    let master_key = XChaCha20Poly1305::generate_key(&mut OsRng);
+//
+//
+//    let master_key_enc = cipher.encrypt(&nonce, master_key.as_slice())?;
+//    let nonce_slice = nonce.as_slice();
+//
+//    sqlx::query!(
+//        "INSERT INTO keys (encrypted_key, nonce) VALUES (?, ?)",
+//        master_key_enc,
+//        nonce_slice
+//    )
+//        .fetch_all(pool)
+//        .await?;
+//
+//    Ok(())
+//}
