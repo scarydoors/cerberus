@@ -25,7 +25,3 @@ impl Store {
         })
     }
 }
-
-struct EncryptedData {
-    data: Vec<u8>,
-}

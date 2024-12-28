@@ -17,6 +17,7 @@ use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
 
 mod store;
 mod nonce_counter;
+mod symmetric_key;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {

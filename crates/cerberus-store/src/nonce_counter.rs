@@ -5,7 +5,7 @@ enum NonceError {
 }
 
 #[derive(Default, Debug, Copy, Clone)]
-struct NonceCounter {
+pub(crate) struct NonceCounter {
     inner: [u8; 24]
 }
 

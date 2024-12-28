@@ -4,3 +4,10 @@ CREATE TABLE keys(
        encrypted_key TEXT NOT NULL,
        nonce TEXT NOT NULL
 );
+
+CREATE TABLE items(
+       id INTEGER PRIMARY KEY NOT NULL,
+       data JSONB NOT NULL,
+       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
