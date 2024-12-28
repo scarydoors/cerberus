@@ -2,14 +2,14 @@ use crate::nonce_counter::NonceCounter;
 
 struct SymmetricKey {
     key: Vec<u8>,
-    nonce: NonceCounter
+    nonce_counter: NonceCounter
 }
 
 impl SymmetricKey {
     pub fn new(key: &[u8], nonce: &[u8]) -> Self {
         Self {
             key: key.to_vec(),
-            nonce: NonceCounter::new(nonce)
+            nonce_counter: NonceCounter::new(nonce)
         }
     }
 
