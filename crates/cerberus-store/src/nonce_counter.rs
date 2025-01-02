@@ -1,10 +1,12 @@
+use serde::{Deserialize, Serialize};
+
 #[derive(thiserror::Error, Debug)]
-enum NonceError {
+pub enum NonceError {
     #[error("cannot increment the nonce anymore")]
     NonceExhausted
 }
 
-#[derive(Default, Debug, Copy, Clone)]
+#[derive(Default, Debug, Copy, Clone, Serialize, Deserialize)]
 pub(crate) struct NonceCounter {
     inner: [u8; 24]
 }

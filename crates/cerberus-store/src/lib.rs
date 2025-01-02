@@ -16,6 +16,7 @@ use chacha20poly1305::{
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
 
 mod store;
+mod vault;
 mod nonce_counter;
 mod symmetric_key;
 mod encrypted_data;
@@ -29,7 +30,13 @@ pub enum Error {
     PasswordHashingFailed(#[from] argon2::password_hash::Error),
 
     #[error("unable to encrypt data")]
-    EncryptionFailed(#[from] chacha20poly1305::Error)
+    EncryptionFailed(#[from] chacha20poly1305::Error),
+
+    #[error("unable to increment nonce")]
+    NonceError(#[from] nonce_counter::NonceError),
+
+    #[error("malformed data in store")]
+    DeserializationError(#[from] serde_json::Error)
 }
 
 pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");

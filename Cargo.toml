@@ -10,3 +10,6 @@ thiserror = "1.0"
 anyhow = "1.0"
 
 cerberus-store = { path = "crates/cerberus-store" }
+
+[profile.dev.package.sqlx-macros]
+opt-level = 3

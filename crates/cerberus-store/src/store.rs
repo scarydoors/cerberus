@@ -1,12 +1,18 @@
+use chrono::{NaiveDateTime};
+use rand::rngs::OsRng;
 use sqlx::{
     sqlite::SqliteConnectOptions,
     SqlitePool,
 };
 use std::path::Path;
+use crate::hash_password;
+use crate::symmetric_key::SymmetricKey;
 use crate::Error;
 use crate::generate_salt;
+use crate::vault::{Vault, VaultRecord};
 
-struct Store {
+#[derive(Debug, Clone)]
+pub struct Store {
     pool: SqlitePool,
 }
 
@@ -29,16 +35,39 @@ impl Store {
         })
     }
 
-    pub async fn create_vault(&self, name: &str, password: &str) -> Result<(), Error> {
+    pub fn from_pool(pool: SqlitePool) -> Self {
+        Store {
+            pool
+        }
+    }
+
+    pub async fn create_vault(&self, name: &str, password: &str) -> Result<Vault, Error> {
         let salt = generate_salt();
-        sqlx::query(
-            "INSERT INTO vaults(name, salt) VALUES (?, ?)"
+        let vault_record = sqlx::query_as!(VaultRecord,
+            "INSERT INTO vaults(name, salt) VALUES (?, ?) RETURNING *", name, salt
         )
-            .bind(name)
-            .bind(salt)
-            .fetch_all(&self.pool)
+            .fetch_one(&self.pool)
             .await?;
 
-        Ok(())
+        let master_encryption_key = SymmetricKey::new(&hash_password(password.as_bytes(), &salt), None, None, vault_record.id);
+
+        let vault = Vault::new(vault_record, self.clone());
+        unimplemented!();
+    }
+
+    pub async fn create_key(&self, key_record: KeyRecord) {
+        let key_record = sqlx
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[sqlx::test(migrator = "MIGRATOR")]
+    async fn can_create_vault(pool: SqlitePool) {
+        let store = Store::from_pool(pool);
+
+        store.create_vault("new vault", "password").await.unwrap();
     }
 }
