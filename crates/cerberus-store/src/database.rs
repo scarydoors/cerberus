@@ -129,4 +129,18 @@ impl Database {
 
         Ok(key_record)
     }
+
+    pub(crate) async fn find_key(&self, key_id: i64) -> Result<Option<KeyRecord>, Error> {
+        let key_record = sqlx::query_as!(
+            KeyRecord,
+            "SELECT id, key_encrypted_data as 'key_encrypted_data: Json<EncryptedData<Vec<u8>>>', next_nonce, vault_id
+            FROM keys
+            WHERE id = ?",
+            key_id
+        )
+            .fetch_optional(&self.pool)
+            .await?;
+
+        Ok(key_record)
+    }
 }

@@ -28,6 +28,6 @@ impl Store {
 
         vault.initialize_vault_key(password.as_bytes()).await?;
 
-        unimplemented!();
+        Ok(vault)
     }
 }

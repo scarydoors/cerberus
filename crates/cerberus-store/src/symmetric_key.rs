@@ -127,6 +127,7 @@ mod test {
     use super::*;
 
     use rand::rngs::OsRng;
+    use sqlx::SqlitePool;
 
     #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
     struct TestStruct(i64);
@@ -137,11 +138,14 @@ mod test {
 
         let plain_data = TestStruct(500000000);
 
-        //let nonce_before_encrypting = symmetric_key.next_nonce.get_value();
+        let nonce_before_encrypting = symmetric_key.next_nonce.get_value();
         let encrypted_data = symmetric_key.encrypt(&plain_data).await.unwrap();
 
         let decrypted_data = symmetric_key.decrypt(&encrypted_data).unwrap();
 
+        assert_ne!(nonce_before_encrypting, symmetric_key.next_nonce.get_value());
         assert_eq!(decrypted_data, plain_data);
     }
+
+    // todo: write test which tests whether nonce is reflected in database
 }

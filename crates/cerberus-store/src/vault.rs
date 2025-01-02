@@ -58,4 +58,12 @@ impl Vault {
 
         Ok(SymmetricKey::new(&hash, None, None, self.id, None)?)
     }
+
+    pub fn id(&self) -> i64 {
+        self.id
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
 }

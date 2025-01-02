@@ -66,7 +66,7 @@ mod tests {
 
         assert_eq!(nonce_counter.get_value(), [0; 24]);
 
-        nonce_counter.increment();
+        nonce_counter.increment().expect("haven't iterated enough times to exhaust the counter");
         assert_eq!(nonce_counter.get_value()[0], 0b00000001);
         assert_eq!(&nonce_counter.get_value()[1..], [0; 23]);
     }
