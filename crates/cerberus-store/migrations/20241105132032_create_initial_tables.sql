@@ -2,7 +2,7 @@ CREATE TABLE keys(
        id INTEGER PRIMARY KEY NOT NULL,
        key_encrypted_data JSONB NOT NULL,
        next_nonce BLOB NOT NULL,
-       vault_id INTEGER REFERENCES vault(id) NOT NULL
+       vault_id INTEGER REFERENCES vaults(id) NOT NULL
 );
 
 CREATE TABLE items(

@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(thiserror::Error, Debug)]
 pub enum NonceError {
+    #[error("cannot create nonce counter, the slice used to initialize the nonce counter must be 24 bytes long")]
+    IncorrectNonceLength,
     #[error("cannot increment the nonce anymore")]
     NonceExhausted
 }
@@ -12,10 +14,10 @@ pub(crate) struct NonceCounter {
 }
 
 impl NonceCounter {
-    pub fn new(value: &[u8]) -> Self {
-        Self {
-            inner: value.try_into().unwrap()
-        }
+    pub fn new(value: &[u8]) -> Result<Self, NonceError> {
+        Ok(Self {
+            inner: value.try_into().map_err(|_| NonceError::IncorrectNonceLength)?
+        })
     }
 
     pub fn get_value(&self) -> [u8; 24] {
@@ -35,6 +37,22 @@ impl NonceCounter {
         }
 
         Ok(())
+    }
+}
+
+impl From<[u8; 24]> for NonceCounter {
+    fn from(value: [u8; 24]) -> Self {
+        NonceCounter {
+            inner: value
+        }
+    }
+}
+
+impl TryFrom<&[u8]> for NonceCounter {
+    type Error = NonceError;
+
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        Self::new(value)
     }
 }
 

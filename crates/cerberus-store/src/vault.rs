@@ -1,16 +1,7 @@
-use chrono::{NaiveDateTime, DateTime, Utc};
+use chrono::{DateTime, Utc};
 use rand::rngs::OsRng;
 
-use crate::{store::Store, symmetric_key::SymmetricKey, Error};
-
-#[derive(Debug)]
-pub struct VaultRecord {
-    id: i64,
-    name: String,
-    salt: String,
-    created_at: NaiveDateTime,
-    updated_at: NaiveDateTime,
-}
+use crate::{database::{Database, VaultRecord}, hash_password, symmetric_key::SymmetricKey, Error};
 
 pub struct Vault {
     id: i64,
@@ -18,33 +9,53 @@ pub struct Vault {
     salt: String,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
-    store: Store,
-    master_encryption_key: Option<SymmetricKey>
+    database: Database,
+    vault_key: Option<SymmetricKey>,
 }
 
 impl Vault {
-    pub fn new(record: VaultRecord, store: Store) -> Self {
+    pub(crate) fn new(id: i64, name: &str, salt: &str, created_at: DateTime<Utc>, updated_at: DateTime<Utc>, database: Database) -> Self {
         Self {
-            id: record.id,
-            name: record.name,
-            salt: record.salt,
-            created_at: record.created_at.and_utc(),
-            updated_at: record.updated_at.and_utc(),
-            store,
-            master_encryption_key: None
+            id,
+            name: name.to_string(),
+            salt: salt.to_string(),
+            created_at,
+            updated_at,
+            database,
+            vault_key: None
         }
     }
 
-    pub fn unlock(password: &[u8]) -> Result<(), Error> {
+    pub async fn unlock(&mut self, password: &str) -> Result<(), Error> {
+        let encrypted_vault_key = self.database.find_vault_key(self.id).await?.expect("database has a vault key for this vault");
 
+        let master_key = self.get_master_symmetric_key(password.as_bytes())?;
+        let vault_key = encrypted_vault_key.try_to_symmetric_key(&master_key, Some(self.database.clone()))?;
+
+        self.vault_key = Some(vault_key);
+        Ok(())
     }
 
-    pub(crate) fn new_symmetric_key(&mut self, parent_key: &mut SymmetricKey) -> Result<SymmetricKey, Error> {
-        let symmetric_key = SymmetricKey::new_with_rng(&mut OsRng, None, self.id);
-        let key_record = symmetric_key.to_key_record(parent_key)?;
+    fn is_vault_locked(&self) -> bool {
+        self.vault_key.is_none()
+    }
 
+    pub(crate) async fn initialize_vault_key(&mut self, password: &[u8]) -> Result<(), Error> {
+        debug_assert!(self.database.find_vault_key(self.id).await?.is_none());
 
+        let mut master_key = self.get_master_symmetric_key(password)?;
+        let mut vault_key = SymmetricKey::generate(&mut OsRng, self.id, Some(self.database.clone()));
 
-        Ok(symmetric_key)
+        vault_key.store(&mut master_key).await?;
+
+        self.vault_key = Some(vault_key);
+
+        Ok(())
+    }
+
+    fn get_master_symmetric_key(&self, password: &[u8]) -> Result<SymmetricKey, Error> {
+        let hash = hash_password(password, &self.salt);
+
+        Ok(SymmetricKey::new(&hash, None, None, self.id, None)?)
     }
 }

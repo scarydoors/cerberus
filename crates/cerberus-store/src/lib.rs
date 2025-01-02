@@ -16,10 +16,10 @@ use chacha20poly1305::{
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
 
 mod store;
+mod database;
 mod vault;
 mod nonce_counter;
 mod symmetric_key;
-mod encrypted_data;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -36,7 +36,13 @@ pub enum Error {
     NonceError(#[from] nonce_counter::NonceError),
 
     #[error("malformed data in store")]
-    DeserializationError(#[from] serde_json::Error)
+    DeserializationError(#[from] serde_json::Error),
+
+    #[error("incorrect symmetric key used for decryption")]
+    IncorrectKey,
+
+    #[error("cannot update key in store")]
+    CannotUpdateKey,
 }
 
 pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
