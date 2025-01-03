@@ -1,4 +1,4 @@
-use crate::{database::{Database, KeyRecord}, hash_password, nonce_counter::NonceCounter};
+use crate::{database::{Database, EncryptedKeyRecord}, hash_password, nonce_counter::NonceCounter};
 use chacha20poly1305::{
     XChaCha20Poly1305,
     aead::{Aead, AeadCore, KeyInit},
@@ -23,13 +23,11 @@ impl<T: Serialize + DeserializeOwned> EncryptedData<T> {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct SymmetricKey {
     id: Option<i64>,
     key: Vec<u8>,
     next_nonce: NonceCounter,
     vault_id: i64,
-    #[serde(skip)]
     database: Option<Database>
 }
 

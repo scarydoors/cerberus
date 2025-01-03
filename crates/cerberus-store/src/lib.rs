@@ -15,9 +15,11 @@ use chacha20poly1305::{
 
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
 
-mod store;
+pub mod store;
+pub mod vault;
+pub mod item;
+
 mod database;
-mod vault;
 mod nonce_counter;
 mod symmetric_key;
 

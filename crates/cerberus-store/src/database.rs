@@ -31,14 +31,14 @@ impl VaultRecord {
     }
 }
 
-pub(crate) struct KeyRecord {
+pub(crate) struct EncryptedKeyRecord {
     pub(crate) id: i64,
     key_encrypted_data: Json<EncryptedData<Vec<u8>>>,
     next_nonce: Vec<u8>,
     vault_id: i64
 }
 
-impl KeyRecord {
+impl EncryptedKeyRecord {
     pub(crate) fn try_to_symmetric_key(&self, parent_key: &SymmetricKey, database: Option<Database>) -> Result<SymmetricKey, Error> {
         let decrypted_key = parent_key.decrypt(&self.key_encrypted_data)?;
 
@@ -87,10 +87,10 @@ impl Database {
         Ok(vault_record)
     }
 
-    pub(crate) async fn store_key(&self, key: &EncryptedData<Vec<u8>>, next_nonce: &[u8], vault_id: i64) -> Result<KeyRecord, Error> {
+    pub(crate) async fn store_key(&self, key: &EncryptedData<Vec<u8>>, next_nonce: &[u8], vault_id: i64) -> Result<EncryptedKeyRecord, Error> {
         let serialized_key = serde_json::to_string(key)?;
         let key_record = sqlx::query_as!(
-            KeyRecord,
+            EncryptedKeyRecord,
             "INSERT INTO keys(key_encrypted_data, next_nonce, vault_id)
             VALUES (?, ?, ?)
             RETURNING id, key_encrypted_data as 'key_encrypted_data: Json<EncryptedData<Vec<u8>>>', next_nonce, vault_id",
@@ -116,9 +116,9 @@ impl Database {
         Ok(res.rows_affected() > 0)
     }
 
-    pub(crate) async fn find_vault_key(&self, vault_id: i64) -> Result<Option<KeyRecord>, Error> {
+    pub(crate) async fn find_vault_key(&self, vault_id: i64) -> Result<Option<EncryptedKeyRecord>, Error> {
         let key_record = sqlx::query_as!(
-            KeyRecord,
+            EncryptedKeyRecord,
             "SELECT id, key_encrypted_data as 'key_encrypted_data: Json<EncryptedData<Vec<u8>>>', next_nonce, vault_id
             FROM keys
             WHERE vault_id = ? AND key_encrypted_data->>'key_id' IS NULL",
@@ -130,9 +130,9 @@ impl Database {
         Ok(key_record)
     }
 
-    pub(crate) async fn find_key(&self, key_id: i64) -> Result<Option<KeyRecord>, Error> {
+    pub(crate) async fn find_key(&self, key_id: i64) -> Result<Option<EncryptedKeyRecord>, Error> {
         let key_record = sqlx::query_as!(
-            KeyRecord,
+            EncryptedKeyRecord,
             "SELECT id, key_encrypted_data as 'key_encrypted_data: Json<EncryptedData<Vec<u8>>>', next_nonce, vault_id
             FROM keys
             WHERE id = ?",
