@@ -45,6 +45,12 @@ pub enum Error {
 
     #[error("cannot update key in store")]
     CannotUpdateKey,
+
+    #[error("the store is locked")]
+    Locked,
+
+    #[error("the profile already exists")]
+    ProfileAlreadyExists,
 }
 
 pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");

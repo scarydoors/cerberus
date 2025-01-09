@@ -6,7 +6,7 @@ use crate::{database::{Database, EncryptedKeyRecord}, hash_password, symmetric_k
 pub struct Vault {
     id: i64,
     name: String,
-    salt: String,
+    key_id: i64,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
     database: Database,
@@ -15,11 +15,11 @@ pub struct Vault {
 }
 
 impl Vault {
-    pub(crate) fn new(id: i64, name: &str, salt: &str, created_at: DateTime<Utc>, updated_at: DateTime<Utc>, database: Database) -> Self {
+    pub(crate) fn new(id: i64, name: &str, key_id: i64, created_at: DateTime<Utc>, updated_at: DateTime<Utc>, database: Database) -> Self {
         Self {
             id,
             name: name.to_string(),
-            salt: salt.to_string(),
+            key_id,
             created_at,
             updated_at,
             database,
@@ -47,30 +47,24 @@ impl Vault {
         &self.name
     }
 
-    async fn ensure_enc_vault_key_retrieved(&mut self) -> Result<(), Error> {
-        if self.enc_vault_key.is_none() {
-            self.enc_vault_key = Some(self.database.find_vault_key(self.id).await?.expect("database has a vault key for this vault"));
-        }
+    //async fn ensure_enc_vault_key_retrieved(&mut self) -> Result<(), Error> {
+    //    if self.enc_vault_key.is_none() {
+    //        self.enc_vault_key = Some(self.database.find_vault_key(self.id).await?.expect("database has a vault key for this vault"));
+    //    }
 
-        Ok(())
-    }
+    //    Ok(())
+    //}
 
-    pub(crate) async fn initialize_vault_key(&mut self, password: &[u8]) -> Result<(), Error> {
-        debug_assert!(self.database.find_vault_key(self.id).await?.is_none());
+    //pub(crate) async fn initialize_vault_key(&mut self, password: &[u8]) -> Result<(), Error> {
+    //    debug_assert!(self.database.find_vault_key(self.id).await?.is_none());
 
-        let mut master_key = self.get_master_symmetric_key(password)?;
-        let mut vault_key = SymmetricKey::generate(&mut OsRng, self.id, Some(self.database.clone()));
+    //    let mut master_key = self.get_master_symmetric_key(password)?;
+    //    let mut vault_key = SymmetricKey::generate(&mut OsRng, self.id, Some(self.database.clone()));
 
-        vault_key.store(&mut master_key).await?;
+    //    vault_key.store(&mut master_key).await?;
 
-        self.vault_key = Some(vault_key);
+    //    self.vault_key = Some(vault_key);
 
-        Ok(())
-    }
-
-    fn get_master_symmetric_key(&self, password: &[u8]) -> Result<SymmetricKey, Error> {
-        let hash = hash_password(password, &self.salt);
-
-        Ok(SymmetricKey::new(&hash, None, None, self.id, None)?)
-    }
+    //    Ok(())
+    //}
 }

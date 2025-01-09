@@ -23,16 +23,53 @@ impl<T: Serialize + DeserializeOwned> EncryptedData<T> {
     }
 }
 
+#[derive(Debug)]
+pub struct SecureKey {
+    symmetric_key: Option<SymmetricKey>,
+    encrypted_key: EncryptedKeyRecord,
+}
+
+impl SecureKey {
+    pub fn new(encrypted_key: EncryptedKeyRecord) -> Self {
+        Self {
+            encrypted_key,
+            symmetric_key: None
+        }
+    }
+
+    pub fn unlock(&mut self, parent_key: &SymmetricKey, database: Option<Database>) -> Result<(), Error> {
+        let symmetric_key = self.encrypted_key.try_to_symmetric_key(parent_key, database)?;
+
+        self.symmetric_key = Some(symmetric_key);
+
+        Ok(())
+    }
+
+    pub fn lock(&mut self) -> Result<(), Error> {
+        self.symmetric_key = None;
+
+        Ok(())
+    }
+
+    pub fn decrypt<T: DeserializeOwned + Serialize>(&self, data: EncryptedData<T>) -> Result<T, Error> {
+        self.symmetric_key.as_ref().ok_or_else(|| Error::Locked)?.decrypt(&data)
+    }
+
+    pub async fn encrypt<T: DeserializeOwned + Serialize>(&mut self, data: T) -> Result<EncryptedData<T>, Error> {
+        self.symmetric_key.as_mut().ok_or_else(|| Error::Locked)?.encrypt(&data).await
+    }
+}
+
+#[derive(Debug)]
 pub(crate) struct SymmetricKey {
     id: Option<i64>,
     key: Vec<u8>,
     next_nonce: NonceCounter,
-    vault_id: i64,
     database: Option<Database>
 }
 
 impl SymmetricKey {
-    pub fn new(key: &[u8], next_nonce: Option<&[u8]>, id: Option<i64>, vault_id: i64, database: Option<Database>) -> Result<Self, Error> {
+    pub fn new(key: &[u8], next_nonce: Option<&[u8]>, id: Option<i64>, database: Option<Database>) -> Result<Self, Error> {
         let nonce_counter = match next_nonce {
             Some(next_nonce) => NonceCounter::new(next_nonce)?,
             None => NonceCounter::default()
@@ -42,20 +79,29 @@ impl SymmetricKey {
             id,
             key: key.to_vec(),
             next_nonce: nonce_counter,
-            vault_id,
             database
         })
     }
 
-    pub fn generate(rng: impl CryptoRng + RngCore, vault_id: i64, database: Option<Database>) -> Self {
+    pub fn generate(rng: impl CryptoRng + RngCore, database: Option<Database>) -> Self {
         let key = XChaCha20Poly1305::generate_key(rng);
 
         Self {
             id: None,
             key: key.to_vec(),
             next_nonce: NonceCounter::default(),
-            vault_id,
             database
+        }
+    }
+
+    pub fn from_password(password: &str, salt: &str) -> Self {
+        let key = hash_password(password.as_bytes(), salt);
+
+        Self {
+            id: None,
+            key,
+            next_nonce: NonceCounter::default(),
+            database: None
         }
     }
 
@@ -103,7 +149,7 @@ impl SymmetricKey {
         let key_record = self.database
             .as_ref()
             .expect("store can only be called when the key has access to the database")
-            .store_key(&encrypted_key, &self.next_nonce.get_value(), self.vault_id)
+            .store_key(&encrypted_key, &self.next_nonce.get_value())
             .await?;
 
         self.id = Some(key_record.id);
