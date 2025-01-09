@@ -1,4 +1,4 @@
-use crate::{database::{Database, EncryptedKeyRecord}, hash_password, nonce_counter::NonceCounter};
+use crate::{database::{Database, EncryptedKeyRecord, Queryable}, hash_password, nonce_counter::NonceCounter};
 use chacha20poly1305::{
     XChaCha20Poly1305,
     aead::{Aead, AeadCore, KeyInit},

@@ -29,6 +29,7 @@ impl Vault {
     }
 
     pub async fn unlock(&mut self, password: &str) -> Result<(), Error> {
+        unimplemented!();
         self.ensure_enc_vault_key_retrieved().await?;
         let encrypted_vault_key = self.enc_vault_key.as_ref().unwrap();
 

@@ -4,6 +4,7 @@ use std::path::Path;
 use std::sync::Arc;
 use std::sync::Mutex;
 use crate::database::Database;
+use crate::database::Queryable;
 use crate::hash_password;
 use crate::symmetric_key::SecureKey;
 use crate::symmetric_key::SymmetricKey;
@@ -26,7 +27,6 @@ impl Store {
     }
 
     pub async fn unlock(&self, password: &str) -> Result<(), Error> {
-
         unimplemented!()
     }
 
@@ -34,11 +34,12 @@ impl Store {
         self.database.get_profile().await?.map_or(Ok(()), |_| Err(Error::ProfileAlreadyExists))?;
 
         let salt = generate_salt();
+        let master_key = SymmetricKey::generate(&mut OsRng, Some(self.database.clone()));
 
     }
 
     pub async fn create_vault(&self, name: &str, password: &str) -> Result<Vault, Error> {
-        unimplemented!()
+        unimplemented!();
         let salt = generate_salt();
 
         let vault_record = self.database.store_vault(name).await?;
