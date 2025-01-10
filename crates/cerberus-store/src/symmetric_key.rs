@@ -147,7 +147,7 @@ impl SymmetricKey {
         let encrypted_key = parent_key.encrypt(&self.key).await?;
 
         let key_record = self.database
-            .as_ref()
+            .as_mut()
             .expect("store can only be called when the key has access to the database")
             .store_key(&encrypted_key, &self.next_nonce.get_value())
             .await?;
@@ -157,8 +157,8 @@ impl SymmetricKey {
         Ok(())
     }
 
-    async fn maybe_update_next_nonce(&self) -> Result<(), Error> {
-        if let (Some(database), Some(id)) = (self.database.as_ref(), self.id) {
+    async fn maybe_update_next_nonce(&mut self) -> Result<(), Error> {
+        if let (Some(database), Some(id)) = (self.database.as_mut(), self.id) {
             database.update_key_next_nonce(id, &self.next_nonce.get_value()).await?;
         }
 

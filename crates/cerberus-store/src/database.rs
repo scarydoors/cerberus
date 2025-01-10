@@ -1,4 +1,4 @@
-use std::{cell::RefCell, path::Path};
+use std::{cell::RefCell, future::Future, path::Path};
 
 use chrono::NaiveDateTime;
 use sqlx::{sqlite::SqliteConnectOptions, types::Json, Executor, Sqlite, SqlitePool, Transaction};
@@ -153,7 +153,14 @@ impl Database {
         }
     }
 
-    pub(crate) fn
+    pub(crate) async fn transaction<F, Fut>(&self, func: F) -> Result<(), Error>
+    where
+        F: Fn(&mut DatabaseTransaction<'_>) -> Fut,
+        Fut: Future<Output = Result<(), Error>>,
+    {
+
+        Ok(())
+    }
 }
 
 impl Queryable for Database {
@@ -164,6 +171,16 @@ impl Queryable for Database {
 
 pub(crate) struct DatabaseTransaction<'a> {
     transaction: Transaction<'a, Sqlite>
+}
+
+impl<'a> DatabaseTransaction<'a> {
+    pub(crate) async fn get_inner(&self) -> &Transaction<'a, Sqlite> {
+        &self.transaction
+    }
+
+    pub(crate) async fn get_inner_mut(&'a mut self) -> &'a mut Transaction<'a, Sqlite> {
+        &mut self.transaction
+    }
 }
 
 impl<'a> Queryable for DatabaseTransaction<'a> {
