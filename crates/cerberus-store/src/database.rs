@@ -1,7 +1,9 @@
+use std::pin::Pin;
 use std::{cell::RefCell, future::Future, path::Path};
 
 use chrono::NaiveDateTime;
 use sqlx::{sqlite::SqliteConnectOptions, types::Json, Executor, Sqlite, SqlitePool, Transaction};
+use sqlx::Error as SqlxError;
 
 use crate::{
     symmetric_key::{EncryptedData, SymmetricKey}, vault::Vault, Error
@@ -55,7 +57,7 @@ impl EncryptedKeyRecord {
     }
 }
 
-pub(crate) trait Queryable {
+pub(crate) trait Repository {
     async fn store_vault(&mut self, name: &str, key_id: i64) -> Result<VaultRecord, Error> {
         let vault_record = sqlx::query_as!(
             VaultRecord,
@@ -108,6 +110,22 @@ pub(crate) trait Queryable {
         Ok(profile)
     }
 
+    async fn store_profile(&mut self, name: &str, salt: &str, key_id: i64) -> Result<Profile, Error> {
+        let profile = sqlx::query_as!(
+            Profile,
+            "INSERT INTO profiles(name, salt, key_id)
+            VALUES (?, ?, ?)
+            RETURNING id, name, salt, key_id, created_at, updated_at",
+            name,
+            salt,
+            key_id
+        )
+            .fetch_one(self.get_executor())
+            .await?;
+
+        Ok(profile)
+    }
+
     async fn find_key(&mut self, key_id: i64) -> Result<Option<EncryptedKeyRecord>, Error> {
         let key_record = sqlx::query_as!(
             EncryptedKeyRecord,
@@ -153,17 +171,30 @@ impl Database {
         }
     }
 
-    pub(crate) async fn transaction<F, Fut>(&self, func: F) -> Result<(), Error>
-    where
-        F: Fn(&mut DatabaseTransaction<'_>) -> Fut,
-        Fut: Future<Output = Result<(), Error>>,
+    pub(crate) async fn transaction<F, O, E>(&self, func: F) -> Result<O, E>
+    where for<'a>
+        F: FnOnce(&'a mut DatabaseTransaction<'_>) -> Pin<Box<dyn Future<Output = Result<O, E>> + Send + 'a>>,
+        O: Send,
+        E: From<SqlxError> + Send
     {
+        let mut transaction = DatabaseTransaction { transaction: self.pool.begin().await? };
+        let result = func(&mut transaction).await;
+        match result {
+            Ok(ret) => {
+                transaction.into_inner().commit().await?;
 
-        Ok(())
+                Ok(ret)
+            },
+            Err(err) => {
+                transaction.into_inner().rollback().await?;
+
+                Err(err)
+            }
+        }
     }
 }
 
-impl Queryable for Database {
+impl Repository for Database {
     fn get_executor(&mut self) -> impl Executor<'_, Database = Sqlite> {
         &self.pool
     }
@@ -174,17 +205,27 @@ pub(crate) struct DatabaseTransaction<'a> {
 }
 
 impl<'a> DatabaseTransaction<'a> {
-    pub(crate) async fn get_inner(&self) -> &Transaction<'a, Sqlite> {
+    pub(crate) fn get_inner(&self) -> &Transaction<'a, Sqlite> {
         &self.transaction
     }
 
-    pub(crate) async fn get_inner_mut(&'a mut self) -> &'a mut Transaction<'a, Sqlite> {
+    pub(crate) fn get_inner_mut(&'a mut self) -> &'a mut Transaction<'a, Sqlite> {
         &mut self.transaction
+    }
+
+    pub(crate) fn into_inner(self) -> Transaction<'a, Sqlite> {
+        self.transaction
     }
 }
 
-impl<'a> Queryable for DatabaseTransaction<'a> {
+impl<'a> Repository for DatabaseTransaction<'a> {
     fn get_executor(&mut self) -> impl Executor<'_, Database = Sqlite> {
         &mut *self.transaction
+    }
+}
+
+impl<'a> Repository for &mut DatabaseTransaction<'a> {
+    fn get_executor(&mut self) -> impl Executor<'_, Database = Sqlite> {
+        (**self).get_executor()
     }
 }

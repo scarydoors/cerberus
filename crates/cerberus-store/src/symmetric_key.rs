@@ -1,4 +1,4 @@
-use crate::{database::{Database, EncryptedKeyRecord, Queryable}, hash_password, nonce_counter::NonceCounter};
+use crate::{database::{self, Database, EncryptedKeyRecord, Repository}, hash_password, nonce_counter::NonceCounter};
 use chacha20poly1305::{
     XChaCha20Poly1305,
     aead::{Aead, AeadCore, KeyInit},
@@ -65,11 +65,10 @@ pub(crate) struct SymmetricKey {
     id: Option<i64>,
     key: Vec<u8>,
     next_nonce: NonceCounter,
-    database: Option<Database>
 }
 
 impl SymmetricKey {
-    pub fn new(key: &[u8], next_nonce: Option<&[u8]>, id: Option<i64>, database: Option<Database>) -> Result<Self, Error> {
+    pub fn new(key: &[u8], next_nonce: Option<&[u8]>, id: Option<i64>) -> Result<Self, Error> {
         let nonce_counter = match next_nonce {
             Some(next_nonce) => NonceCounter::new(next_nonce)?,
             None => NonceCounter::default()
@@ -79,33 +78,30 @@ impl SymmetricKey {
             id,
             key: key.to_vec(),
             next_nonce: nonce_counter,
-            database
         })
     }
 
-    pub fn generate(rng: impl CryptoRng + RngCore, database: Option<Database>) -> Self {
+    pub fn generate(rng: impl CryptoRng + RngCore) -> Self {
         let key = XChaCha20Poly1305::generate_key(rng);
 
         Self {
             id: None,
             key: key.to_vec(),
             next_nonce: NonceCounter::default(),
-            database
         }
     }
 
-    pub fn from_password(password: &str, salt: &str) -> Self {
-        let key = hash_password(password.as_bytes(), salt);
+    pub fn from_password(password: &[u8], salt: &str) -> Self {
+        let key = hash_password(password, salt);
 
         Self {
             id: None,
             key,
             next_nonce: NonceCounter::default(),
-            database: None
         }
     }
 
-    pub async fn encrypt<T: Serialize + DeserializeOwned>(&mut self, data: &T) -> Result<EncryptedData<T>, Error> {
+    pub async fn encrypt<T: Serialize + DeserializeOwned, R: Repository>(&mut self, data: &T, repo: &mut R) -> Result<EncryptedData<T>, Error> {
         let data = serde_json::to_string(&data)?;
 
         let cipher = XChaCha20Poly1305::new(self.key.as_slice().into());
@@ -113,7 +109,7 @@ impl SymmetricKey {
         let encrypted_data = cipher.encrypt(&nonce.into(), data.as_bytes())?;
 
         self.next_nonce.increment()?;
-        self.maybe_update_next_nonce().await?;
+        self.maybe_update_next_nonce(repo).await?;
 
         Ok(EncryptedData {
             enc_data: encrypted_data,
@@ -143,12 +139,10 @@ impl SymmetricKey {
         self.id
     }
 
-    pub(crate) async fn store(&mut self, parent_key: &mut SymmetricKey) -> Result<(), Error> {
-        let encrypted_key = parent_key.encrypt(&self.key).await?;
+    pub(crate) async fn store<R: Repository>(&mut self, parent_key: &mut SymmetricKey, repo: &mut R) -> Result<(), Error> {
+        let encrypted_key = parent_key.encrypt(&self.key, repo).await?;
 
-        let key_record = self.database
-            .as_mut()
-            .expect("store can only be called when the key has access to the database")
+        let key_record = repo
             .store_key(&encrypted_key, &self.next_nonce.get_value())
             .await?;
 
@@ -157,9 +151,9 @@ impl SymmetricKey {
         Ok(())
     }
 
-    async fn maybe_update_next_nonce(&mut self) -> Result<(), Error> {
-        if let (Some(database), Some(id)) = (self.database.as_mut(), self.id) {
-            database.update_key_next_nonce(id, &self.next_nonce.get_value()).await?;
+    async fn maybe_update_next_nonce<R: Repository>(&mut self, repo: &mut R) -> Result<(), Error> {
+        if let Some(id) = self.id {
+            repo.update_key_next_nonce(id, &self.next_nonce.get_value()).await?;
         }
 
         Ok(())
