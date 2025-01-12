@@ -108,10 +108,16 @@ impl Store {
     }
 
     pub async fn create_vault(&self, name: &str, password: &str) -> Result<Vault, Error> {
-        unimplemented!();
-        let salt = generate_salt();
+
+        self.database.transaction(|transaction| {
+            Box::pin(async move {
+
+                Ok::<_, Error>(())
+            })
+        }).await?;
 
         let vault_record = self.database.store_vault(name).await?;
+
         let mut vault = vault_record.to_vault(self.database.clone());
 
         vault.initialize_vault_key(password.as_bytes()).await?;

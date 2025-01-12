@@ -31,11 +31,10 @@ pub(crate) struct VaultRecord {
 }
 
 impl VaultRecord {
-    pub fn to_vault(&self, database: Database) -> Vault {
+    pub fn to_vault(&self, database: Database, key: EncryptedKeyRecord) -> Vault {
         Vault::new(
             self.id,
             &self.name,
-            self.key_id,
             self.created_at.and_utc(),
             self.updated_at.and_utc(),
             database

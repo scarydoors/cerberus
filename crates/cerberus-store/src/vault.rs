@@ -14,7 +14,6 @@ pub struct Vault {
     database: Database,
     master_key: Arc<Mutex<SecureKey>>,
     vault_key: Option<SymmetricKey>,
-    enc_vault_key: Option<EncryptedKeyRecord>,
 }
 
 impl Vault {
