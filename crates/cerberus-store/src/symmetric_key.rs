@@ -37,26 +37,28 @@ impl SecureKey {
         }
     }
 
-    pub fn unlock(&mut self, parent_key: &SymmetricKey, database: Option<Database>) -> Result<(), Error> {
-        let symmetric_key = self.encrypted_key.try_to_symmetric_key(parent_key, database)?;
+    pub fn unlock(&mut self, parent_key: &SymmetricKey) -> Result<(), Error> {
+        let symmetric_key = self.encrypted_key.try_to_symmetric_key(parent_key)?;
 
         self.symmetric_key = Some(symmetric_key);
 
         Ok(())
     }
 
-    pub fn lock(&mut self) -> Result<(), Error> {
+    pub fn lock(&mut self) {
         self.symmetric_key = None;
-
-        Ok(())
     }
 
     pub fn decrypt<T: DeserializeOwned + Serialize>(&self, data: EncryptedData<T>) -> Result<T, Error> {
         self.symmetric_key.as_ref().ok_or_else(|| Error::Locked)?.decrypt(&data)
     }
 
-    pub async fn encrypt<T: DeserializeOwned + Serialize>(&mut self, data: T) -> Result<EncryptedData<T>, Error> {
-        self.symmetric_key.as_mut().ok_or_else(|| Error::Locked)?.encrypt(&data).await
+    pub async fn encrypt<T: DeserializeOwned + Serialize, R: Repository>(&mut self, data: T, repo: Option<&mut R>) -> Result<EncryptedData<T>, Error> {
+        self.symmetric_key.as_mut().ok_or_else(|| Error::Locked)?.encrypt(&data, repo).await
+    }
+
+    pub fn is_locked(&self) -> bool {
+        self.symmetric_key.is_none()
     }
 }
 
@@ -101,7 +103,7 @@ impl SymmetricKey {
         }
     }
 
-    pub async fn encrypt<T: Serialize + DeserializeOwned, R: Repository>(&mut self, data: &T, repo: &mut R) -> Result<EncryptedData<T>, Error> {
+    pub async fn encrypt<T: Serialize + DeserializeOwned, R: Repository>(&mut self, data: &T, repo: Option<&mut R>) -> Result<EncryptedData<T>, Error> {
         let data = serde_json::to_string(&data)?;
 
         let cipher = XChaCha20Poly1305::new(self.key.as_slice().into());
@@ -151,8 +153,9 @@ impl SymmetricKey {
         Ok(())
     }
 
-    async fn maybe_update_next_nonce<R: Repository>(&mut self, repo: &mut R) -> Result<(), Error> {
+    async fn maybe_update_next_nonce<R: Repository>(&mut self, repo: Option<&mut R>) -> Result<(), Error> {
         if let Some(id) = self.id {
+            let repo = repo.expect("repo is present because the key has state in the database which must be updated");
             repo.update_key_next_nonce(id, &self.next_nonce.get_value()).await?;
         }
 

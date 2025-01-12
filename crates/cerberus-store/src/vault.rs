@@ -1,7 +1,9 @@
+use std::sync::{Arc, Mutex};
+
 use chrono::{DateTime, Utc};
 use rand::rngs::OsRng;
 
-use crate::{database::{Database, EncryptedKeyRecord}, hash_password, symmetric_key::SymmetricKey, Error};
+use crate::{database::{Database, EncryptedKeyRecord}, hash_password, symmetric_key::{SecureKey, SymmetricKey}, Error};
 
 pub struct Vault {
     id: i64,
@@ -10,6 +12,7 @@ pub struct Vault {
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
     database: Database,
+    master_key: Arc<Mutex<SecureKey>>,
     vault_key: Option<SymmetricKey>,
     enc_vault_key: Option<EncryptedKeyRecord>,
 }

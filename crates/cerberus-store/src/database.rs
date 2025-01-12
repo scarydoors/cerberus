@@ -11,13 +11,14 @@ use crate::{
 
 pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
 
+#[derive(Debug)]
 pub(crate) struct Profile {
-    id: i64,
-    name: String,
-    salt: String,
-    key_id: i64,
-    created_at: NaiveDateTime,
-    updated_at: NaiveDateTime,
+    pub(crate) id: i64,
+    pub(crate) name: String,
+    pub(crate) salt: String,
+    pub(crate) key_id: i64,
+    pub(crate) created_at: NaiveDateTime,
+    pub(crate) updated_at: NaiveDateTime,
 }
 
 #[derive(Default)]
@@ -50,10 +51,10 @@ pub(crate) struct EncryptedKeyRecord {
 }
 
 impl EncryptedKeyRecord {
-    pub(crate) fn try_to_symmetric_key(&self, parent_key: &SymmetricKey, database: Option<Database>) -> Result<SymmetricKey, Error> {
+    pub(crate) fn try_to_symmetric_key(&self, parent_key: &SymmetricKey) -> Result<SymmetricKey, Error> {
         let decrypted_key = parent_key.decrypt(&self.key_encrypted_data)?;
 
-        Ok(SymmetricKey::new(&decrypted_key, Some(&self.next_nonce), Some(self.id), database)?)
+        Ok(SymmetricKey::new(&decrypted_key, Some(&self.next_nonce), Some(self.id))?)
     }
 }
 

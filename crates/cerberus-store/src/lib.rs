@@ -51,6 +51,15 @@ pub enum Error {
 
     #[error("the profile already exists")]
     ProfileAlreadyExists,
+
+    #[error("store needs to be initialized using the initialize_profile method")]
+    StoreNotInitialized,
+
+    #[error("store already unlocked")]
+    StoreAlreadyUnlocked,
+
+    #[error("incorrect password")]
+    IncorrectPassword,
 }
 
 pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
