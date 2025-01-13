@@ -6,6 +6,7 @@ CREATE TABLE keys(
 
 CREATE TABLE items(
        id INTEGER PRIMARY KEY NOT NULL,
+       vault_id INTEGER REFERENCES vaults(id) NOT NULL,
        overview_encrypted_data JSONB NOT NULL,
        overview_key_id INTEGER REFERENCES keys(id) NOT NULL,
        item_encrypted_data JSONB NOT NULL,

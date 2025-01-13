@@ -11,51 +11,9 @@ use crate::{
 
 pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
 
-#[derive(Debug)]
-pub(crate) struct Profile {
-    pub(crate) id: i64,
-    pub(crate) name: String,
-    pub(crate) salt: String,
-    pub(crate) key_id: i64,
-    pub(crate) created_at: NaiveDateTime,
-    pub(crate) updated_at: NaiveDateTime,
-}
+pub mod record_types;
 
-#[derive(Default)]
-pub(crate) struct VaultRecord {
-    id: i64,
-    name: String,
-    key_id: i64,
-    created_at: NaiveDateTime,
-    updated_at: NaiveDateTime,
-}
-
-impl VaultRecord {
-    pub fn to_vault(&self, database: Database, key: EncryptedKeyRecord) -> Vault {
-        Vault::new(
-            self.id,
-            &self.name,
-            self.created_at.and_utc(),
-            self.updated_at.and_utc(),
-            database
-        )
-    }
-}
-
-#[derive(Debug)]
-pub(crate) struct EncryptedKeyRecord {
-    pub(crate) id: i64,
-    key_encrypted_data: Json<EncryptedData<Vec<u8>>>,
-    next_nonce: Vec<u8>,
-}
-
-impl EncryptedKeyRecord {
-    pub(crate) fn try_to_symmetric_key(&self, parent_key: &SymmetricKey) -> Result<SymmetricKey, Error> {
-        let decrypted_key = parent_key.decrypt(&self.key_encrypted_data)?;
-
-        Ok(SymmetricKey::new(&decrypted_key, Some(&self.next_nonce), Some(self.id))?)
-    }
-}
+use record_types::{VaultRecord, EncryptedKeyRecord, ProfileRecord};
 
 pub(crate) trait Repository {
     async fn store_vault(&mut self, name: &str, key_id: i64) -> Result<VaultRecord, Error> {
@@ -110,9 +68,9 @@ pub(crate) trait Repository {
         Ok(profile)
     }
 
-    async fn store_profile(&mut self, name: &str, salt: &str, key_id: i64) -> Result<Profile, Error> {
+    async fn store_profile(&mut self, name: &str, salt: &str, key_id: i64) -> Result<ProfileRecord, Error> {
         let profile = sqlx::query_as!(
-            Profile,
+            ProfileRecord,
             "INSERT INTO profiles(name, salt, key_id)
             VALUES (?, ?, ?)
             RETURNING id, name, salt, key_id, created_at, updated_at",

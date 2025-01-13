@@ -1,4 +1,4 @@
-use crate::{database::{self, Database, EncryptedKeyRecord, Repository}, hash_password, nonce_counter::NonceCounter};
+use crate::{database::{Database, record_types::EncryptedKeyRecord, Repository}, hash_password, nonce_counter::NonceCounter};
 use chacha20poly1305::{
     XChaCha20Poly1305,
     aead::{Aead, AeadCore, KeyInit},
@@ -8,6 +8,45 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use crate::Error;
 
 use std::marker::PhantomData;
+
+impl EncryptedKeyRecord {
+    pub(crate) fn into_encrypted_key(self) -> EncryptedKey {
+        EncryptedKey::new(
+            self.id,
+            self.key_encrypted_data.0,
+            self.next_nonce.try_into().expect("nonce is 24 bytes long")
+        )
+    }
+}
+
+pub(crate) struct EncryptedKey {
+    id: i64,
+    key_encrypted_data: EncryptedData<Vec<u8>>,
+    next_nonce: [u8; 24]
+}
+
+impl EncryptedKey {
+    pub(crate) fn new(id: i64, key_encrypted_data: EncryptedData<Vec<u8>>, next_nonce: [u8; 24]) -> Self {
+        Self {
+            id,
+            key_encrypted_data,
+            next_nonce
+        }
+    }
+
+    pub(crate) fn try_to_symmetric_key(&self, parent_key: &SymmetricKey) -> Result<SymmetricKey, Error> {
+        let decrypted_key = parent_key.decrypt(&self.key_encrypted_data)?;
+        Ok(SymmetricKey::new(&decrypted_key, Some(&self.next_nonce), Some(self.id))?)
+    }
+}
+
+impl EncryptedKeyRecord {
+    pub(crate) fn try_to_symmetric_key(&self, parent_key: &SymmetricKey) -> Result<SymmetricKey, Error> {
+        let decrypted_key = parent_key.decrypt(&self.key_encrypted_data)?;
+
+        Ok(SymmetricKey::new(&decrypted_key, Some(&self.next_nonce), Some(self.id))?)
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct EncryptedData<T: Serialize + DeserializeOwned> {
@@ -23,9 +62,15 @@ impl<T: Serialize + DeserializeOwned> EncryptedData<T> {
     }
 }
 
+trait DatabaseBackedCipher {
+    async fn encrypt<T: Serialize + DeserializeOwned, R: Repository>(&mut self, data: &T, repo: Option<&mut R>) -> Result<EncryptedData<T>, Error>;
+
+    fn decrypt<T: Serialize + DeserializeOwned>(&self, data: &EncryptedData<T>) -> Result<T, Error>;
+}
+
 #[derive(Debug)]
 pub struct SecureKey {
-    symmetric_key: Option<SymmetricKey>,
+    decrypted_key: Option<SymmetricKey>,
     encrypted_key: EncryptedKeyRecord,
 }
 
@@ -33,32 +78,34 @@ impl SecureKey {
     pub fn new(encrypted_key: EncryptedKeyRecord) -> Self {
         Self {
             encrypted_key,
-            symmetric_key: None
+            decrypted_key: None
         }
     }
 
     pub fn unlock(&mut self, parent_key: &SymmetricKey) -> Result<(), Error> {
         let symmetric_key = self.encrypted_key.try_to_symmetric_key(parent_key)?;
 
-        self.symmetric_key = Some(symmetric_key);
+        self.decrypted_key = Some(symmetric_key);
 
         Ok(())
     }
 
     pub fn lock(&mut self) {
-        self.symmetric_key = None;
-    }
-
-    pub fn decrypt<T: DeserializeOwned + Serialize>(&self, data: EncryptedData<T>) -> Result<T, Error> {
-        self.symmetric_key.as_ref().ok_or_else(|| Error::Locked)?.decrypt(&data)
-    }
-
-    pub async fn encrypt<T: DeserializeOwned + Serialize, R: Repository>(&mut self, data: T, repo: Option<&mut R>) -> Result<EncryptedData<T>, Error> {
-        self.symmetric_key.as_mut().ok_or_else(|| Error::Locked)?.encrypt(&data, repo).await
+        self.decrypted_key = None;
     }
 
     pub fn is_locked(&self) -> bool {
-        self.symmetric_key.is_none()
+        self.decrypted_key.is_none()
+    }
+}
+
+impl DatabaseBackedCipher for SecureKey {
+    async fn encrypt<T: Serialize + DeserializeOwned, R: Repository>(&mut self, data: &T, repo: Option<&mut R>) -> Result<EncryptedData<T>, Error> {
+        self.decrypted_key.as_mut().ok_or_else(|| Error::Locked)?.encrypt(data, repo).await
+    }
+
+    fn decrypt<T: Serialize + DeserializeOwned>(&self, data: &EncryptedData<T>) -> Result<T, Error> {
+        self.decrypted_key.as_ref().ok_or_else(|| Error::Locked)?.decrypt(data)
     }
 }
 
@@ -103,36 +150,6 @@ impl SymmetricKey {
         }
     }
 
-    pub async fn encrypt<T: Serialize + DeserializeOwned, R: Repository>(&mut self, data: &T, repo: Option<&mut R>) -> Result<EncryptedData<T>, Error> {
-        let data = serde_json::to_string(&data)?;
-
-        let cipher = XChaCha20Poly1305::new(self.key.as_slice().into());
-        let nonce = self.next_nonce.get_value();
-        let encrypted_data = cipher.encrypt(&nonce.into(), data.as_bytes())?;
-
-        self.next_nonce.increment()?;
-        self.maybe_update_next_nonce(repo).await?;
-
-        Ok(EncryptedData {
-            enc_data: encrypted_data,
-            nonce,
-            key_id: self.id,
-            _phantom: PhantomData
-        })
-    }
-
-    pub fn decrypt<T: Serialize + DeserializeOwned>(&self, data: &EncryptedData<T>) -> Result<T, Error> {
-        if !self.can_decrypt(data) {
-            return Err(Error::IncorrectKey)
-        }
-
-        let cipher = XChaCha20Poly1305::new(self.key.as_slice().into());
-        let decrypted_data = cipher.decrypt(&data.nonce.into(), data.enc_data.as_slice())?;
-
-        let data = serde_json::from_slice(&decrypted_data)?;
-        Ok(data)
-    }
-
     pub(crate) fn can_decrypt<T: Serialize + DeserializeOwned>(&self, data: &EncryptedData<T>) -> bool {
         self.id == data.key_id
     }
@@ -141,8 +158,8 @@ impl SymmetricKey {
         self.id
     }
 
-    pub(crate) async fn store<R: Repository>(&mut self, parent_key: &mut SymmetricKey, repo: &mut R) -> Result<(), Error> {
-        let encrypted_key = parent_key.encrypt(&self.key, repo).await?;
+    pub(crate) async fn store<K: DatabaseBackedCipher, R: Repository>(&mut self, parent_key: &mut K, repo: &mut R) -> Result<(), Error> {
+        let encrypted_key = parent_key.encrypt(&self.key, Some(repo)).await?;
 
         let key_record = repo
             .store_key(&encrypted_key, &self.next_nonce.get_value())
@@ -160,6 +177,38 @@ impl SymmetricKey {
         }
 
         Ok(())
+    }
+}
+
+impl DatabaseBackedCipher for SymmetricKey {
+    async fn encrypt<T: Serialize + DeserializeOwned, R: Repository>(&mut self, data: &T, repo: Option<&mut R>) -> Result<EncryptedData<T>, Error> {
+        let data = serde_json::to_string(&data)?;
+
+        let cipher = XChaCha20Poly1305::new(self.key.as_slice().into());
+        let nonce = self.next_nonce.get_value();
+        let encrypted_data = cipher.encrypt(&nonce.into(), data.as_bytes())?;
+
+        self.next_nonce.increment()?;
+        self.maybe_update_next_nonce(repo).await?;
+
+        Ok(EncryptedData {
+            enc_data: encrypted_data,
+            nonce,
+            key_id: self.id,
+            _phantom: PhantomData
+        })
+    }
+
+    fn decrypt<T: Serialize + DeserializeOwned>(&self, data: &EncryptedData<T>) -> Result<T, Error> {
+        if !self.can_decrypt(data) {
+            return Err(Error::IncorrectKey)
+        }
+
+        let cipher = XChaCha20Poly1305::new(self.key.as_slice().into());
+        let decrypted_data = cipher.decrypt(&data.nonce.into(), data.enc_data.as_slice())?;
+
+        let data = serde_json::from_slice(&decrypted_data)?;
+        Ok(data)
     }
 }
 

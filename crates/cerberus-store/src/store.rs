@@ -1,12 +1,13 @@
 use argon2::password_hash::Output;
-use chrono::{NaiveDateTime};
+use chrono::Utc;
+use chrono::{NaiveDateTime, DateTime};
 use rand::rngs::OsRng;
 use std::path::Path;
 use std::sync::Arc;
 use std::sync::Mutex;
 use crate::database::Database;
 use crate::database::DatabaseTransaction;
-use crate::database::Profile;
+use crate::database::record_types::{Profile, ProfileRecord};
 use crate::database::Repository;
 use crate::hash_password;
 use crate::symmetric_key::SecureKey;
@@ -14,6 +15,30 @@ use crate::symmetric_key::SymmetricKey;
 use crate::Error;
 use crate::generate_salt;
 use crate::vault::Vault;
+
+
+#[derive(Debug)]
+pub struct Profile {
+    id: i64,
+    name: String,
+    salt: String,
+    key_id: i64,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+impl ProfileRecord {
+    pub(crate) fn into_profile(self) -> Profile {
+        Profile {
+            id: self.id,
+            name: self.name,
+            salt: self.salt,
+            key_id: self.key_id,
+            created_at: self.created_at.and_utc(),
+            updated_at: self.updated_at.and_utc(),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct Store {
@@ -98,21 +123,25 @@ impl Store {
         self.profile = Some(self.database.transaction(|mut transaction| {
             Box::pin(async move {
                 master_key.store(&mut derived_key, &mut transaction).await?;
-                let profile = transaction.store_profile(&name_owned, &salt, master_key.id().unwrap()).await?;
+                let profile_record = transaction.store_profile(&name_owned, &salt, master_key.id().unwrap()).await?;
 
-                Ok::<_, Error>(profile)
+                Ok::<_, Error>(profile_record.into_profile())
             })
         }).await?);
 
         Ok(())
     }
 
-    pub async fn create_vault(&self, name: &str, password: &str) -> Result<Vault, Error> {
+    pub async fn create_vault(&self, name: &str) -> Result<Vault, Error> {
+        let mut master_key = self.master_key.as_ref().ok_or(Error::Locked)?.lock().unwrap();
+        let mut vault_key = SymmetricKey::generate(&mut OsRng);
 
-        self.database.transaction(|transaction| {
+        let vault = self.database.transaction(|transaction| {
             Box::pin(async move {
+                vault_key.store(&mut *master_key, transaction).await?;
+                let vault_record = transaction.store_vault(name, vault_key.id().unwrap()).await?;
 
-                Ok::<_, Error>(())
+                Ok::<_, Error>(vault_record.into_vault())
             })
         }).await?;
 

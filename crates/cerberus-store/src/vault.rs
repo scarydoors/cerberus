@@ -3,30 +3,44 @@ use std::sync::{Arc, Mutex};
 use chrono::{DateTime, Utc};
 use rand::rngs::OsRng;
 
-use crate::{database::{Database, EncryptedKeyRecord}, hash_password, symmetric_key::{SecureKey, SymmetricKey}, Error};
+use crate::{database::{record_types::VaultRecord, Database}, hash_password, symmetric_key::{EncryptedKey, SecureKey, SymmetricKey}, Error};
+
+pub struct VaultKey {
+    master_key: Arc<Mutex<SecureKey>>,
+    vault_key: EncryptedKey,
+}
+
+impl VaultRecord {
+    pub(crate) fn into_vault(self, vault_key: VaultKey, database: Database) -> Vault {
+        Vault {
+            id: self.id,
+            name: self.name,
+            created_at: self.created_at.and_utc(),
+            updated_at: self.updated_at.and_utc(),
+            database,
+            vault_key
+        }
+    }
+}
 
 pub struct Vault {
     id: i64,
     name: String,
-    key_id: i64,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
     database: Database,
-    master_key: Arc<Mutex<SecureKey>>,
-    vault_key: Option<SymmetricKey>,
+    vault_key: VaultKey
 }
 
 impl Vault {
-    pub(crate) fn new(id: i64, name: &str, key_id: i64, created_at: DateTime<Utc>, updated_at: DateTime<Utc>, database: Database) -> Self {
+    pub(crate) fn new(id: i64, name: &str, created_at: DateTime<Utc>, updated_at: DateTime<Utc>, database: Database, vault_key: VaultKey) -> Self {
         Self {
             id,
             name: name.to_string(),
-            key_id,
             created_at,
             updated_at,
             database,
-            vault_key: None,
-            enc_vault_key: None,
+            vault_key,
         }
     }
 
@@ -49,25 +63,4 @@ impl Vault {
     pub fn name(&self) -> &str {
         &self.name
     }
-
-    //async fn ensure_enc_vault_key_retrieved(&mut self) -> Result<(), Error> {
-    //    if self.enc_vault_key.is_none() {
-    //        self.enc_vault_key = Some(self.database.find_vault_key(self.id).await?.expect("database has a vault key for this vault"));
-    //    }
-
-    //    Ok(())
-    //}
-
-    //pub(crate) async fn initialize_vault_key(&mut self, password: &[u8]) -> Result<(), Error> {
-    //    debug_assert!(self.database.find_vault_key(self.id).await?.is_none());
-
-    //    let mut master_key = self.get_master_symmetric_key(password)?;
-    //    let mut vault_key = SymmetricKey::generate(&mut OsRng, self.id, Some(self.database.clone()));
-
-    //    vault_key.store(&mut master_key).await?;
-
-    //    self.vault_key = Some(vault_key);
-
-    //    Ok(())
-    //}
 }
