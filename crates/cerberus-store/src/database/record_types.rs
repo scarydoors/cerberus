@@ -1,7 +1,7 @@
 use chrono::NaiveDateTime;
 use sqlx::types::Json;
 
-use crate::{store::Profile, symmetric_key::{EncryptedData, EncryptedKey}, vault::{Vault, VaultKey}};
+use crate::{store::Profile, crypto::{EncryptedData, EncryptedKey}, vault::{Vault, VaultKey}};
 
 use super::Database;
 

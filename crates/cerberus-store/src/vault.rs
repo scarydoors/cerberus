@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use chrono::{DateTime, Utc};
 use rand::rngs::OsRng;
 
-use crate::{database::{record_types::VaultRecord, Database}, hash_password, symmetric_key::{EncryptedKey, SecureKey, SymmetricKey}, Error};
+use crate::{database::{record_types::VaultRecord, Database}, hash_password, crypto::{EncryptedKey, SecureKey, SymmetricKey}, Error};
 
 pub(crate) struct VaultKey {
     master_key: Arc<Mutex<SecureKey>>,

@@ -6,7 +6,7 @@ use sqlx::{sqlite::SqliteConnectOptions, types::Json, Executor, Sqlite, SqlitePo
 use sqlx::Error as SqlxError;
 
 use crate::{
-    symmetric_key::{EncryptedData, SymmetricKey}, vault::Vault, Error
+    crypto::{EncryptedData, SymmetricKey}, vault::Vault, Error
 };
 
 pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");

@@ -21,7 +21,7 @@ pub mod item;
 
 mod database;
 mod nonce_counter;
-mod symmetric_key;
+mod crypto;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {

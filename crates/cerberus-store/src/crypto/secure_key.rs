@@ -1,0 +1,48 @@
+use serde::{Serialize, de::DeserializeOwned};
+use super::{Cipher, SymmetricKey, EncryptedKey, EncryptedData};
+use crate::Error;
+
+#[derive(Debug)]
+pub struct SecureKey {
+    decrypted_key: Option<SymmetricKey>,
+    encrypted_key: EncryptedKey,
+}
+
+impl SecureKey {
+    pub(crate) fn new(encrypted_key: EncryptedKey) -> Self {
+        Self {
+            encrypted_key,
+            decrypted_key: None
+        }
+    }
+
+    pub(crate) fn unlock(&mut self, parent_key: &SymmetricKey) -> Result<(), Error> {
+        let symmetric_key = self.encrypted_key.try_to_symmetric_key(parent_key)?;
+
+        self.decrypted_key = Some(symmetric_key);
+
+        Ok(())
+    }
+
+    pub(crate) fn lock(&mut self) {
+        self.decrypted_key = None;
+    }
+
+    pub(crate) fn is_locked(&self) -> bool {
+        self.decrypted_key.is_none()
+    }
+
+    fn get_decrypted_key(&self) -> Result<&SymmetricKey, Error> {
+        self.decrypted_key.as_ref().ok_or(Error::Locked)
+    }
+}
+
+impl Cipher for SecureKey {
+    fn encrypt<T: Serialize + DeserializeOwned>(&self, data: &T) -> Result<EncryptedData<T>, Error> {
+        self.get_decrypted_key()?.encrypt(data)
+    }
+
+    fn decrypt<T: Serialize + DeserializeOwned>(&self, data: &EncryptedData<T>) -> Result<T, Error> {
+        self.get_decrypted_key()?.decrypt(data)
+    }
+}

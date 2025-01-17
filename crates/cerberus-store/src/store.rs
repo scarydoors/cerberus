@@ -1,17 +1,12 @@
-use argon2::password_hash::Output;
 use chrono::Utc;
-use chrono::{NaiveDateTime, DateTime};
+use chrono::DateTime;
 use rand::rngs::OsRng;
 use std::path::Path;
 use std::sync::Arc;
 use std::sync::Mutex;
 use crate::database::Database;
-use crate::database::DatabaseTransaction;
-use crate::database::record_types::ProfileRecord;
 use crate::database::Repository;
-use crate::hash_password;
-use crate::symmetric_key::SecureKey;
-use crate::symmetric_key::SymmetricKey;
+use crate::crypto::{SecureKey, SymmetricKey};
 use crate::Error;
 use crate::generate_salt;
 use crate::vault::{Vault, VaultKey};
@@ -149,8 +144,5 @@ impl Store {
         let vault_key = VaultKey::new(arc_master_key, encrypted_vault_key);
 
         Ok(vault_record.into_vault(vault_key, database))
-    }
-
-    pub async fn list_vaults(&self) -> Result<Vec<VaultOverview>> {
     }
 }
