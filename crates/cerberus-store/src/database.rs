@@ -15,7 +15,7 @@ pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
 
 pub mod record_types;
 
-use record_types::{EncryptedKeyRecord, ProfileRecord, VaultRecord};
+use record_types::{EncryptedKeyRecord, ProfileRecord, VaultRecord, VaultOverviewRecord};
 
 pub(crate) trait Repository {
     async fn store_vault(&mut self, name: &str, key_id: i64) -> Result<VaultRecord, Error> {
@@ -93,6 +93,17 @@ pub(crate) trait Repository {
         .await?;
 
         Ok(key_record)
+    }
+
+    async fn list_vault_overviews(&mut self) -> Result<Vec<VaultOverviewRecord>, Error> {
+        let vault_overview_records = sqlx::query_as!(
+            VaultOverviewRecord,
+            "SELECT id, name FROM vaults"
+        )
+            .fetch_all(self.get_executor())
+            .await?;
+
+        Ok(vault_overview_records)
     }
 
     fn get_executor(&mut self) -> impl Executor<'_, Database = Sqlite>;
