@@ -1,27 +1,25 @@
 use std::path::Path;
 
-use rand::rngs::OsRng;
 use argon2::{
-    password_hash::{
-        PasswordHash, PasswordHasher, PasswordVerifier, Salt, SaltString
-    },
+    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, Salt, SaltString},
     Argon2,
 };
+use rand::rngs::OsRng;
 
 use chacha20poly1305::{
     aead::{Aead, AeadCore, KeyInit},
-    XChaCha20Poly1305, XNonce
+    XChaCha20Poly1305, XNonce,
 };
 
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
 
+pub mod item;
 pub mod store;
 pub mod vault;
-pub mod item;
 
+mod crypto;
 mod database;
 mod nonce_counter;
-mod crypto;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -73,7 +71,8 @@ pub async fn create_database(filename: impl AsRef<Path>) -> Result<(), Error> {
 
     MIGRATOR
         .run(&pool)
-        .await.map_err(|err| sqlx::Error::from(err).into())
+        .await
+        .map_err(|err| sqlx::Error::from(err).into())
 }
 
 fn generate_salt() -> String {
@@ -84,7 +83,9 @@ fn hash_password(password: &[u8], salt: &str) -> Vec<u8> {
     let salt = Salt::from_b64(salt).expect("salt is the correct format");
     let password_hash_data = Argon2::default().hash_password(password, salt).unwrap();
 
-    let key = password_hash_data.hash.expect("hash_password was successful");
+    let key = password_hash_data
+        .hash
+        .expect("hash_password was successful");
 
     key.as_bytes().to_owned()
 }

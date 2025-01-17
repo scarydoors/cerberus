@@ -5,18 +5,20 @@ pub enum NonceError {
     #[error("cannot create nonce counter, the slice used to initialize the nonce counter must be 24 bytes long")]
     IncorrectNonceLength,
     #[error("cannot increment the nonce anymore")]
-    NonceExhausted
+    NonceExhausted,
 }
 
 #[derive(Default, Debug, Copy, Clone, Serialize, Deserialize)]
 pub(crate) struct NonceCounter {
-    inner: [u8; 24]
+    inner: [u8; 24],
 }
 
 impl NonceCounter {
     pub fn new(value: &[u8]) -> Result<Self, NonceError> {
         Ok(Self {
-            inner: value.try_into().map_err(|_| NonceError::IncorrectNonceLength)?
+            inner: value
+                .try_into()
+                .map_err(|_| NonceError::IncorrectNonceLength)?,
         })
     }
 
@@ -42,9 +44,7 @@ impl NonceCounter {
 
 impl From<[u8; 24]> for NonceCounter {
     fn from(value: [u8; 24]) -> Self {
-        NonceCounter {
-            inner: value
-        }
+        NonceCounter { inner: value }
     }
 }
 
@@ -66,7 +66,9 @@ mod tests {
 
         assert_eq!(nonce_counter.get_value(), [0; 24]);
 
-        nonce_counter.increment().expect("haven't iterated enough times to exhaust the counter");
+        nonce_counter
+            .increment()
+            .expect("haven't iterated enough times to exhaust the counter");
         assert_eq!(nonce_counter.get_value()[0], 0b00000001);
         assert_eq!(&nonce_counter.get_value()[1..], [0; 23]);
     }
@@ -77,7 +79,9 @@ mod tests {
 
         for _ in 0..24 {
             for _ in 0..255 {
-                nonce_counter.increment().expect("haven't iterated enough times to exhaust the counter");
+                nonce_counter
+                    .increment()
+                    .expect("haven't iterated enough times to exhaust the counter");
             }
         }
 

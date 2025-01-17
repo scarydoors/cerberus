@@ -1,12 +1,12 @@
+use super::{Cipher, EncryptedData, EncryptedKey};
 use crate::{hash_password, Error};
-use serde::{de::DeserializeOwned, Serialize};
 use chacha20poly1305::{
-    XChaCha20Poly1305,
     aead::{Aead, AeadCore, KeyInit},
+    XChaCha20Poly1305,
 };
 use rand::{rngs::OsRng, CryptoRng, RngCore};
+use serde::{de::DeserializeOwned, Serialize};
 use std::marker::PhantomData;
-use super::{Cipher, EncryptedData, EncryptedKey};
 
 #[derive(Debug)]
 pub(crate) struct SymmetricKey {
@@ -34,10 +34,7 @@ impl SymmetricKey {
     pub fn from_password(password: &[u8], salt: &str) -> Self {
         let key = hash_password(password, salt);
 
-        Self {
-            id: None,
-            key,
-        }
+        Self { id: None, key }
     }
 
     pub fn into_encrypted_key<K: Cipher>(self, parent_key: &K) -> EncryptedKey {
@@ -46,18 +43,23 @@ impl SymmetricKey {
         EncryptedKey::new(self.id, encrypted_key)
     }
 
-    pub(crate) fn can_decrypt<T: Serialize + DeserializeOwned>(&self, data: &EncryptedData<T>) -> bool {
+    pub(crate) fn can_decrypt<T: Serialize + DeserializeOwned>(
+        &self,
+        data: &EncryptedData<T>,
+    ) -> bool {
         self.id == data.key_id
     }
 
     pub(crate) fn id(&self) -> Option<i64> {
         self.id
     }
-
 }
 
 impl Cipher for SymmetricKey {
-    fn encrypt<T: Serialize + DeserializeOwned>(&self, data: &T) -> Result<EncryptedData<T>, Error> {
+    fn encrypt<T: Serialize + DeserializeOwned>(
+        &self,
+        data: &T,
+    ) -> Result<EncryptedData<T>, Error> {
         let data = serde_json::to_string(&data)?;
 
         let cipher = XChaCha20Poly1305::new(self.key.as_slice().into());
@@ -68,13 +70,16 @@ impl Cipher for SymmetricKey {
             enc_data: encrypted_data,
             nonce: nonce.into(),
             key_id: self.id,
-            _phantom: PhantomData
+            _phantom: PhantomData,
         })
     }
 
-    fn decrypt<T: Serialize + DeserializeOwned>(&self, data: &EncryptedData<T>) -> Result<T, Error> {
+    fn decrypt<T: Serialize + DeserializeOwned>(
+        &self,
+        data: &EncryptedData<T>,
+    ) -> Result<T, Error> {
         if !self.can_decrypt(data) {
-            return Err(Error::IncorrectKey)
+            return Err(Error::IncorrectKey);
         }
 
         let cipher = XChaCha20Poly1305::new(self.key.as_slice().into());

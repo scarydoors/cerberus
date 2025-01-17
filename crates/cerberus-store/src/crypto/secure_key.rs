@@ -1,9 +1,14 @@
-use serde::{Serialize, de::DeserializeOwned};
-use super::{Cipher, SymmetricKey, EncryptedKey, EncryptedData};
+use super::{Cipher, EncryptedData, EncryptedKey, SymmetricKey};
 use crate::Error;
+use serde::{de::DeserializeOwned, Serialize};
+
+pub(crate) enum SecureKeyState {
+    Locked,
+    Unlocked,
+}
 
 #[derive(Debug)]
-pub struct SecureKey {
+pub(crate) struct SecureKey {
     decrypted_key: Option<SymmetricKey>,
     encrypted_key: EncryptedKey,
 }
@@ -12,7 +17,7 @@ impl SecureKey {
     pub(crate) fn new(encrypted_key: EncryptedKey) -> Self {
         Self {
             encrypted_key,
-            decrypted_key: None
+            decrypted_key: None,
         }
     }
 
@@ -28,6 +33,14 @@ impl SecureKey {
         self.decrypted_key = None;
     }
 
+    pub(crate) fn get_state(&self) -> SecureKeyState {
+        if self.is_locked() {
+            SecureKeyState::Locked
+        } else {
+            SecureKeyState::Unlocked
+        }
+    }
+
     pub(crate) fn is_locked(&self) -> bool {
         self.decrypted_key.is_none()
     }
@@ -38,11 +51,17 @@ impl SecureKey {
 }
 
 impl Cipher for SecureKey {
-    fn encrypt<T: Serialize + DeserializeOwned>(&self, data: &T) -> Result<EncryptedData<T>, Error> {
+    fn encrypt<T: Serialize + DeserializeOwned>(
+        &self,
+        data: &T,
+    ) -> Result<EncryptedData<T>, Error> {
         self.get_decrypted_key()?.encrypt(data)
     }
 
-    fn decrypt<T: Serialize + DeserializeOwned>(&self, data: &EncryptedData<T>) -> Result<T, Error> {
+    fn decrypt<T: Serialize + DeserializeOwned>(
+        &self,
+        data: &EncryptedData<T>,
+    ) -> Result<T, Error> {
         self.get_decrypted_key()?.decrypt(data)
     }
 }

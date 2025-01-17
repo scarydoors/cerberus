@@ -2,18 +2,20 @@ use std::pin::Pin;
 use std::{cell::RefCell, future::Future, path::Path};
 
 use chrono::NaiveDateTime;
-use sqlx::{sqlite::SqliteConnectOptions, types::Json, Executor, Sqlite, SqlitePool, Transaction};
 use sqlx::Error as SqlxError;
+use sqlx::{sqlite::SqliteConnectOptions, types::Json, Executor, Sqlite, SqlitePool, Transaction};
 
 use crate::{
-    crypto::{EncryptedData, SymmetricKey}, vault::Vault, Error
+    crypto::{EncryptedData, SymmetricKey},
+    vault::Vault,
+    Error,
 };
 
 pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
 
 pub mod record_types;
 
-use record_types::{VaultRecord, EncryptedKeyRecord, ProfileRecord};
+use record_types::{EncryptedKeyRecord, ProfileRecord, VaultRecord};
 
 pub(crate) trait Repository {
     async fn store_vault(&mut self, name: &str, key_id: i64) -> Result<VaultRecord, Error> {
@@ -23,13 +25,16 @@ pub(crate) trait Repository {
             name,
             key_id
         )
-            .fetch_one(self.get_executor())
-            .await?;
+        .fetch_one(self.get_executor())
+        .await?;
 
         Ok(vault_record)
     }
 
-    async fn store_key(&mut self, key: &EncryptedData<Vec<u8>>) -> Result<EncryptedKeyRecord, Error> {
+    async fn store_key(
+        &mut self,
+        key: &EncryptedData<Vec<u8>>,
+    ) -> Result<EncryptedKeyRecord, Error> {
         let serialized_key = serde_json::to_string(key)?;
         let key_record = sqlx::query_as!(
             EncryptedKeyRecord,
@@ -38,8 +43,8 @@ pub(crate) trait Repository {
             RETURNING id, key_encrypted_data as 'key_encrypted_data: Json<EncryptedData<Vec<u8>>>'",
             serialized_key,
         )
-            .fetch_one(self.get_executor())
-            .await?;
+        .fetch_one(self.get_executor())
+        .await?;
 
         Ok(key_record)
     }
@@ -49,13 +54,18 @@ pub(crate) trait Repository {
             ProfileRecord,
             "SELECT id, name, salt, key_id, created_at, updated_at FROM profiles WHERE id = 1"
         )
-            .fetch_optional(self.get_executor())
-            .await?;
+        .fetch_optional(self.get_executor())
+        .await?;
 
         Ok(profile)
     }
 
-    async fn store_profile(&mut self, name: &str, salt: &str, key_id: i64) -> Result<ProfileRecord, Error> {
+    async fn store_profile(
+        &mut self,
+        name: &str,
+        salt: &str,
+        key_id: i64,
+    ) -> Result<ProfileRecord, Error> {
         let profile = sqlx::query_as!(
             ProfileRecord,
             "INSERT INTO profiles(name, salt, key_id)
@@ -65,8 +75,8 @@ pub(crate) trait Repository {
             salt,
             key_id
         )
-            .fetch_one(self.get_executor())
-            .await?;
+        .fetch_one(self.get_executor())
+        .await?;
 
         Ok(profile)
     }
@@ -79,8 +89,8 @@ pub(crate) trait Repository {
             WHERE id = ?",
             key_id
         )
-            .fetch_optional(self.get_executor())
-            .await?;
+        .fetch_optional(self.get_executor())
+        .await?;
 
         Ok(key_record)
     }
@@ -103,33 +113,34 @@ impl Database {
 
         MIGRATOR
             .run(&pool)
-            .await.map_err(|err| sqlx::Error::from(err))?;
+            .await
+            .map_err(|err| sqlx::Error::from(err))?;
 
-        Ok(Self {
-            pool
-        })
+        Ok(Self { pool })
     }
 
     pub(crate) fn from_pool(pool: SqlitePool) -> Self {
-        Self {
-            pool
-        }
+        Self { pool }
     }
 
     pub(crate) async fn transaction<F, O, E>(&self, func: F) -> Result<O, E>
-    where for<'a>
-        F: FnOnce(&'a mut DatabaseTransaction<'_>) -> Pin<Box<dyn Future<Output = Result<O, E>> + Send + 'a>>,
+    where
+        for<'a> F: FnOnce(
+            &'a mut DatabaseTransaction<'_>,
+        ) -> Pin<Box<dyn Future<Output = Result<O, E>> + Send + 'a>>,
         O: Send,
-        E: From<SqlxError> + Send
+        E: From<SqlxError> + Send,
     {
-        let mut transaction = DatabaseTransaction { transaction: self.pool.begin().await? };
+        let mut transaction = DatabaseTransaction {
+            transaction: self.pool.begin().await?,
+        };
         let result = func(&mut transaction).await;
         match result {
             Ok(ret) => {
                 transaction.into_inner().commit().await?;
 
                 Ok(ret)
-            },
+            }
             Err(err) => {
                 transaction.into_inner().rollback().await?;
 
@@ -146,7 +157,7 @@ impl Repository for Database {
 }
 
 pub(crate) struct DatabaseTransaction<'a> {
-    transaction: Transaction<'a, Sqlite>
+    transaction: Transaction<'a, Sqlite>,
 }
 
 impl<'a> DatabaseTransaction<'a> {

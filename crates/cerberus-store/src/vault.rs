@@ -3,7 +3,11 @@ use std::sync::{Arc, Mutex};
 use chrono::{DateTime, Utc};
 use rand::rngs::OsRng;
 
-use crate::{database::{record_types::VaultRecord, Database}, hash_password, crypto::{EncryptedKey, SecureKey, SymmetricKey}, Error};
+use crate::{
+    crypto::{EncryptedKey, SecureKey, SymmetricKey},
+    database::{record_types::VaultRecord, Database},
+    hash_password, Error,
+};
 
 pub(crate) struct VaultKey {
     master_key: Arc<Mutex<SecureKey>>,
@@ -20,19 +24,23 @@ impl VaultKey {
 }
 
 pub struct Vault {
-    id: i64,
-    name: String,
+    vault_overview: VaultOverview,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
     database: Database,
-    vault_key: VaultKey
+    vault_key: VaultKey,
 }
 
 impl Vault {
-    pub(crate) fn new(id: i64, name: String, created_at: DateTime<Utc>, updated_at: DateTime<Utc>, database: Database, vault_key: VaultKey) -> Self {
+    pub(crate) fn new(
+        vault_overview: VaultOverview,
+        created_at: DateTime<Utc>,
+        updated_at: DateTime<Utc>,
+        database: Database,
+        vault_key: VaultKey,
+    ) -> Self {
         Self {
-            id,
-            name,
+            vault_overview,
             created_at,
             updated_at,
             database,
@@ -40,7 +48,26 @@ impl Vault {
         }
     }
 
+    pub fn overview(&self) -> &VaultOverview {
+        &self.vault_overview
+    }
+}
+
+pub struct VaultOverview {
+    id: i64,
+    name: String,
+}
+
+impl VaultOverview {
+    pub(crate) fn new(id: i64, name: String) -> Self {
+        Self { id, name }
+    }
+
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    pub fn id(&self) -> i64 {
+        self.id
     }
 }

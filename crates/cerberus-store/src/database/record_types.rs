@@ -1,7 +1,11 @@
 use chrono::NaiveDateTime;
 use sqlx::types::Json;
 
-use crate::{store::Profile, crypto::{EncryptedData, EncryptedKey}, vault::{Vault, VaultKey}};
+use crate::{
+    crypto::{EncryptedData, EncryptedKey},
+    store::Profile,
+    vault::{Vault, VaultKey, VaultOverview},
+};
 
 use super::Database;
 
@@ -17,7 +21,14 @@ pub(crate) struct ProfileRecord {
 
 impl ProfileRecord {
     pub(crate) fn into_profile(self) -> Profile {
-        Profile::new(self.id, self.name, self.salt, self.key_id, self.created_at.and_utc(), self.updated_at.and_utc())
+        Profile::new(
+            self.id,
+            self.name,
+            self.salt,
+            self.key_id,
+            self.created_at.and_utc(),
+            self.updated_at.and_utc(),
+        )
     }
 }
 
@@ -38,13 +49,26 @@ pub(crate) struct VaultRecord {
 
 impl VaultRecord {
     pub(crate) fn into_vault(self, vault_key: VaultKey, database: Database) -> Vault {
-        Vault::new(self.id, self.name, self.created_at.and_utc(), self.updated_at.and_utc(), database, vault_key)
+        let overview = VaultOverview::new(self.id, self.name);
+        Vault::new(
+            overview,
+            self.created_at.and_utc(),
+            self.updated_at.and_utc(),
+            database,
+            vault_key,
+        )
     }
 }
 
 pub(crate) struct VaultOverviewRecord {
     pub(crate) id: i64,
-    pub(crate) name: String
+    pub(crate) name: String,
+}
+
+impl VaultOverviewRecord {
+    pub(crate) fn into_vault_overview(self) -> VaultOverview {
+        VaultOverview::new(self.id, self.name)
+    }
 }
 
 #[derive(Debug)]
@@ -55,10 +79,7 @@ pub(crate) struct EncryptedKeyRecord {
 
 impl EncryptedKeyRecord {
     pub(crate) fn into_encrypted_key(self) -> EncryptedKey {
-        EncryptedKey::new(
-            Some(self.id),
-            self.key_encrypted_data.0,
-        )
+        EncryptedKey::new(Some(self.id), self.key_encrypted_data.0)
     }
 }
 
