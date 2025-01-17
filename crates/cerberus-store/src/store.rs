@@ -7,15 +7,14 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use crate::database::Database;
 use crate::database::DatabaseTransaction;
-use crate::database::record_types::{Profile, ProfileRecord};
+use crate::database::record_types::ProfileRecord;
 use crate::database::Repository;
 use crate::hash_password;
 use crate::symmetric_key::SecureKey;
 use crate::symmetric_key::SymmetricKey;
 use crate::Error;
 use crate::generate_salt;
-use crate::vault::Vault;
-
+use crate::vault::{Vault, VaultKey};
 
 #[derive(Debug)]
 pub struct Profile {
@@ -27,15 +26,15 @@ pub struct Profile {
     updated_at: DateTime<Utc>,
 }
 
-impl ProfileRecord {
-    pub(crate) fn into_profile(self) -> Profile {
-        Profile {
-            id: self.id,
-            name: self.name,
-            salt: self.salt,
-            key_id: self.key_id,
-            created_at: self.created_at.and_utc(),
-            updated_at: self.updated_at.and_utc(),
+impl Profile {
+    pub(crate) fn new(id: i64, name: String, salt: String, key_id: i64, created_at: DateTime<Utc>, updated_at: DateTime<Utc>) -> Self {
+        Self {
+            id,
+            name,
+            salt,
+            key_id,
+            created_at,
+            updated_at,
         }
     }
 }
@@ -94,7 +93,7 @@ impl Store {
 
     async fn ensure_profile_retrieved(&mut self) -> Result<(), Error> {
         if let None = self.profile {
-            self.profile = Some(self.database.get_profile().await?.ok_or(Error::StoreNotInitialized)?);
+            self.profile = Some(self.database.get_profile().await?.ok_or(Error::StoreNotInitialized)?.into_profile());
         }
 
         Ok(())
@@ -103,7 +102,7 @@ impl Store {
     async fn ensure_master_key_retrieved(&mut self) -> Result<(), Error> {
         if let None = self.master_key {
             let profile = self.profile.as_ref().expect("profile has been initialized and fetched");
-            let enc_master_key = self.database.find_key(profile.key_id).await?.expect("key exists because profile exists");
+            let enc_master_key = self.database.find_key(profile.key_id).await?.expect("key exists because profile exists").into_encrypted_key();
 
             self.master_key = Some(Arc::new(Mutex::new(SecureKey::new(enc_master_key))));
         }
@@ -111,19 +110,18 @@ impl Store {
         Ok(())
     }
 
-    pub async fn initialize_profile(&mut self, name: &str, password: &str) -> Result<(), Error> {
+    pub async fn initialize_profile(&mut self, name: String, password: &str) -> Result<(), Error> {
         self.database.get_profile().await?.map_or(Ok(()), |_| Err(Error::ProfileAlreadyExists))?;
 
         let salt = generate_salt();
         let mut derived_key = SymmetricKey::from_password(password.as_bytes(), &salt);
-        let mut master_key = SymmetricKey::generate(&mut OsRng);
-
-        let name_owned = name.to_owned();
+        let master_key = SymmetricKey::generate(&mut OsRng);
 
         self.profile = Some(self.database.transaction(|mut transaction| {
             Box::pin(async move {
-                master_key.store(&mut derived_key, &mut transaction).await?;
-                let profile_record = transaction.store_profile(&name_owned, &salt, master_key.id().unwrap()).await?;
+                let mut encrypted_master_key = master_key.into_encrypted_key(&mut derived_key);
+                encrypted_master_key.store(&mut transaction).await?;
+                let profile_record = transaction.store_profile(&name, &salt, encrypted_master_key.id().unwrap()).await?;
 
                 Ok::<_, Error>(profile_record.into_profile())
             })
@@ -132,26 +130,27 @@ impl Store {
         Ok(())
     }
 
-    pub async fn create_vault(&self, name: &str) -> Result<Vault, Error> {
-        let mut master_key = self.master_key.as_ref().ok_or(Error::Locked)?.lock().unwrap();
-        let mut vault_key = SymmetricKey::generate(&mut OsRng);
+    pub async fn create_vault(&self, name: String) -> Result<Vault, Error> {
+        let master_key = self.master_key.as_ref().ok_or(Error::Locked)?.lock().unwrap();
+        let vault_key = SymmetricKey::generate(&mut OsRng);
+        let mut encrypted_vault_key = vault_key.into_encrypted_key(&*master_key);
 
-        let vault = self.database.transaction(|transaction| {
+        let (vault_record, encrypted_vault_key) = self.database.transaction(|transaction| {
             Box::pin(async move {
-                vault_key.store(&mut *master_key, transaction).await?;
-                let vault_record = transaction.store_vault(name, vault_key.id().unwrap()).await?;
+                encrypted_vault_key.store(transaction).await?;
+                let vault_record = transaction.store_vault(&name, encrypted_vault_key.id().unwrap()).await?;
 
-                Ok::<_, Error>(vault_record.into_vault())
+                Ok::<_, Error>((vault_record, encrypted_vault_key))
             })
         }).await?;
 
-        let vault_record = self.database.store_vault(name).await?;
+        let arc_master_key = self.master_key.as_ref().unwrap().clone();
+        let database = self.database.clone();
+        let vault_key = VaultKey::new(arc_master_key, encrypted_vault_key);
 
-        let mut vault = vault_record.to_vault(self.database.clone());
-
-        vault.initialize_vault_key(password.as_bytes()).await?;
-
-        Ok(vault)
+        Ok(vault_record.into_vault(vault_key, database))
     }
 
+    pub async fn list_vaults(&self) -> Result<Vec<VaultOverview>> {
+    }
 }

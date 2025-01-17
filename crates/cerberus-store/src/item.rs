@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::{database::EncryptedKeyRecord, symmetric_key::EncryptedData};
+use crate::{database::record_types::EncryptedKeyRecord, symmetric_key::EncryptedData};
 
 #[derive(Serialize, Deserialize)]
 struct ItemOverview {

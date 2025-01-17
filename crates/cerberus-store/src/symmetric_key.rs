@@ -3,48 +3,43 @@ use chacha20poly1305::{
     XChaCha20Poly1305,
     aead::{Aead, AeadCore, KeyInit},
 };
-use rand::{CryptoRng, RngCore};
+use rand::{rngs::OsRng, CryptoRng, RngCore};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use crate::Error;
 
 use std::marker::PhantomData;
 
-impl EncryptedKeyRecord {
-    pub(crate) fn into_encrypted_key(self) -> EncryptedKey {
-        EncryptedKey::new(
-            self.id,
-            self.key_encrypted_data.0,
-            self.next_nonce.try_into().expect("nonce is 24 bytes long")
-        )
-    }
-}
-
+#[derive(Debug)]
 pub(crate) struct EncryptedKey {
-    id: i64,
+    id: Option<i64>,
     key_encrypted_data: EncryptedData<Vec<u8>>,
-    next_nonce: [u8; 24]
 }
 
 impl EncryptedKey {
-    pub(crate) fn new(id: i64, key_encrypted_data: EncryptedData<Vec<u8>>, next_nonce: [u8; 24]) -> Self {
+    pub(crate) fn new(id: Option<i64>, key_encrypted_data: EncryptedData<Vec<u8>>) -> Self {
         Self {
             id,
             key_encrypted_data,
-            next_nonce
         }
     }
 
     pub(crate) fn try_to_symmetric_key(&self, parent_key: &SymmetricKey) -> Result<SymmetricKey, Error> {
         let decrypted_key = parent_key.decrypt(&self.key_encrypted_data)?;
-        Ok(SymmetricKey::new(&decrypted_key, Some(&self.next_nonce), Some(self.id))?)
+        Ok(SymmetricKey::new(&decrypted_key, self.id))
     }
-}
 
-impl EncryptedKeyRecord {
-    pub(crate) fn try_to_symmetric_key(&self, parent_key: &SymmetricKey) -> Result<SymmetricKey, Error> {
-        let decrypted_key = parent_key.decrypt(&self.key_encrypted_data)?;
+    pub(crate) async fn store<R: Repository>(&mut self, repo: &mut R) -> Result<(), Error> {
+        let key_record = repo
+            .store_key(&self.key_encrypted_data)
+            .await?;
 
-        Ok(SymmetricKey::new(&decrypted_key, Some(&self.next_nonce), Some(self.id))?)
+        self.id = Some(key_record.id);
+
+        Ok(())
+    }
+
+    pub(crate) fn id(&self) -> Option<i64> {
+        self.id
     }
 }
 
@@ -62,8 +57,8 @@ impl<T: Serialize + DeserializeOwned> EncryptedData<T> {
     }
 }
 
-trait DatabaseBackedCipher {
-    async fn encrypt<T: Serialize + DeserializeOwned, R: Repository>(&mut self, data: &T, repo: Option<&mut R>) -> Result<EncryptedData<T>, Error>;
+trait Cipher {
+    fn encrypt<T: Serialize + DeserializeOwned>(&self, data: &T) -> Result<EncryptedData<T>, Error>;
 
     fn decrypt<T: Serialize + DeserializeOwned>(&self, data: &EncryptedData<T>) -> Result<T, Error>;
 }
@@ -71,11 +66,11 @@ trait DatabaseBackedCipher {
 #[derive(Debug)]
 pub struct SecureKey {
     decrypted_key: Option<SymmetricKey>,
-    encrypted_key: EncryptedKeyRecord,
+    encrypted_key: EncryptedKey,
 }
 
 impl SecureKey {
-    pub fn new(encrypted_key: EncryptedKeyRecord) -> Self {
+    pub fn new(encrypted_key: EncryptedKey) -> Self {
         Self {
             encrypted_key,
             decrypted_key: None
@@ -99,9 +94,9 @@ impl SecureKey {
     }
 }
 
-impl DatabaseBackedCipher for SecureKey {
-    async fn encrypt<T: Serialize + DeserializeOwned, R: Repository>(&mut self, data: &T, repo: Option<&mut R>) -> Result<EncryptedData<T>, Error> {
-        self.decrypted_key.as_mut().ok_or_else(|| Error::Locked)?.encrypt(data, repo).await
+impl Cipher for SecureKey {
+    fn encrypt<T: Serialize + DeserializeOwned>(&self, data: &T) -> Result<EncryptedData<T>, Error> {
+        self.decrypted_key.as_ref().ok_or_else(|| Error::Locked)?.encrypt(data)
     }
 
     fn decrypt<T: Serialize + DeserializeOwned>(&self, data: &EncryptedData<T>) -> Result<T, Error> {
@@ -113,21 +108,14 @@ impl DatabaseBackedCipher for SecureKey {
 pub(crate) struct SymmetricKey {
     id: Option<i64>,
     key: Vec<u8>,
-    next_nonce: NonceCounter,
 }
 
 impl SymmetricKey {
-    pub fn new(key: &[u8], next_nonce: Option<&[u8]>, id: Option<i64>) -> Result<Self, Error> {
-        let nonce_counter = match next_nonce {
-            Some(next_nonce) => NonceCounter::new(next_nonce)?,
-            None => NonceCounter::default()
-        };
-
-        Ok(Self {
+    pub fn new(key: &[u8], id: Option<i64>) -> Self {
+        Self {
             id,
             key: key.to_vec(),
-            next_nonce: nonce_counter,
-        })
+        }
     }
 
     pub fn generate(rng: impl CryptoRng + RngCore) -> Self {
@@ -136,7 +124,6 @@ impl SymmetricKey {
         Self {
             id: None,
             key: key.to_vec(),
-            next_nonce: NonceCounter::default(),
         }
     }
 
@@ -146,8 +133,13 @@ impl SymmetricKey {
         Self {
             id: None,
             key,
-            next_nonce: NonceCounter::default(),
         }
+    }
+
+    pub fn into_encrypted_key<K: Cipher>(self, parent_key: &K) -> EncryptedKey {
+        let encrypted_key = parent_key.encrypt(&self.key).unwrap();
+
+        EncryptedKey::new(self.id, encrypted_key)
     }
 
     pub(crate) fn can_decrypt<T: Serialize + DeserializeOwned>(&self, data: &EncryptedData<T>) -> bool {
@@ -158,42 +150,19 @@ impl SymmetricKey {
         self.id
     }
 
-    pub(crate) async fn store<K: DatabaseBackedCipher, R: Repository>(&mut self, parent_key: &mut K, repo: &mut R) -> Result<(), Error> {
-        let encrypted_key = parent_key.encrypt(&self.key, Some(repo)).await?;
-
-        let key_record = repo
-            .store_key(&encrypted_key, &self.next_nonce.get_value())
-            .await?;
-
-        self.id = Some(key_record.id);
-
-        Ok(())
-    }
-
-    async fn maybe_update_next_nonce<R: Repository>(&mut self, repo: Option<&mut R>) -> Result<(), Error> {
-        if let Some(id) = self.id {
-            let repo = repo.expect("repo is present because the key has state in the database which must be updated");
-            repo.update_key_next_nonce(id, &self.next_nonce.get_value()).await?;
-        }
-
-        Ok(())
-    }
 }
 
-impl DatabaseBackedCipher for SymmetricKey {
-    async fn encrypt<T: Serialize + DeserializeOwned, R: Repository>(&mut self, data: &T, repo: Option<&mut R>) -> Result<EncryptedData<T>, Error> {
+impl Cipher for SymmetricKey {
+    fn encrypt<T: Serialize + DeserializeOwned>(&self, data: &T) -> Result<EncryptedData<T>, Error> {
         let data = serde_json::to_string(&data)?;
 
         let cipher = XChaCha20Poly1305::new(self.key.as_slice().into());
-        let nonce = self.next_nonce.get_value();
+        let nonce = XChaCha20Poly1305::generate_nonce(&mut OsRng);
         let encrypted_data = cipher.encrypt(&nonce.into(), data.as_bytes())?;
-
-        self.next_nonce.increment()?;
-        self.maybe_update_next_nonce(repo).await?;
 
         Ok(EncryptedData {
             enc_data: encrypted_data,
-            nonce,
+            nonce: nonce.into(),
             key_id: self.id,
             _phantom: PhantomData
         })
@@ -210,32 +179,4 @@ impl DatabaseBackedCipher for SymmetricKey {
         let data = serde_json::from_slice(&decrypted_data)?;
         Ok(data)
     }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    use rand::rngs::OsRng;
-    use sqlx::SqlitePool;
-
-    #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
-    struct TestStruct(i64);
-
-    #[tokio::test]
-    async fn can_encrypt_and_decrypt_data() {
-        let mut symmetric_key = SymmetricKey::generate(&mut OsRng, 0, None);
-
-        let plain_data = TestStruct(500000000);
-
-        let nonce_before_encrypting = symmetric_key.next_nonce.get_value();
-        let encrypted_data = symmetric_key.encrypt(&plain_data).await.unwrap();
-
-        let decrypted_data = symmetric_key.decrypt(&encrypted_data).unwrap();
-
-        assert_ne!(nonce_before_encrypting, symmetric_key.next_nonce.get_value());
-        assert_eq!(decrypted_data, plain_data);
-    }
-
-    // todo: write test which tests whether nonce is reflected in database
 }
