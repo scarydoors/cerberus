@@ -35,7 +35,7 @@ impl<T: Serialize + DeserializeOwned> EncryptedData<T> {
     }
 }
 
-trait Cipher {
+pub(crate) trait Cipher {
     fn encrypt<T: Serialize + DeserializeOwned>(&self, data: &T)
         -> Result<EncryptedData<T>, Error>;
 

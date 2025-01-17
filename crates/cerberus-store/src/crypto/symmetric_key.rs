@@ -15,14 +15,14 @@ pub(crate) struct SymmetricKey {
 }
 
 impl SymmetricKey {
-    pub fn new(key: &[u8], id: Option<i64>) -> Self {
+    pub(crate) fn new(key: &[u8], id: Option<i64>) -> Self {
         Self {
             id,
             key: key.to_vec(),
         }
     }
 
-    pub fn generate(rng: impl CryptoRng + RngCore) -> Self {
+    pub(crate) fn generate(rng: impl CryptoRng + RngCore) -> Self {
         let key = XChaCha20Poly1305::generate_key(rng);
 
         Self {
@@ -31,13 +31,13 @@ impl SymmetricKey {
         }
     }
 
-    pub fn from_password(password: &[u8], salt: &str) -> Self {
+    pub(crate) fn from_password(password: &[u8], salt: &str) -> Self {
         let key = hash_password(password, salt);
 
         Self { id: None, key }
     }
 
-    pub fn into_encrypted_key<K: Cipher>(self, parent_key: &K) -> EncryptedKey {
+    pub(crate) fn into_encrypted_key<K: Cipher>(self, parent_key: &K) -> EncryptedKey {
         let encrypted_key = parent_key.encrypt(&self.key).unwrap();
 
         EncryptedKey::new(self.id, encrypted_key)
