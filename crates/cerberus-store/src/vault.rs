@@ -1,12 +1,10 @@
 use std::sync::{Arc, Mutex};
 
 use chrono::{DateTime, Utc};
-use rand::rngs::OsRng;
 
 use crate::{
-    crypto::{EncryptedKey, SecureKey, SymmetricKey},
-    database::{record_types::VaultRecord, Database},
-    hash_password, Error,
+    crypto::{EncryptedKey, SecureKey},
+    database::Database,
 };
 
 pub(crate) struct VaultKey {

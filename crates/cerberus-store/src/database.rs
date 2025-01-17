@@ -1,13 +1,11 @@
 use std::pin::Pin;
-use std::{cell::RefCell, future::Future, path::Path};
+use std::{future::Future, path::Path};
 
-use chrono::NaiveDateTime;
 use sqlx::Error as SqlxError;
 use sqlx::{sqlite::SqliteConnectOptions, types::Json, Executor, Sqlite, SqlitePool, Transaction};
 
 use crate::{
-    crypto::{EncryptedData, SymmetricKey},
-    vault::Vault,
+    crypto::EncryptedData,
     Error,
 };
 

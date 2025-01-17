@@ -1,15 +1,12 @@
 use std::path::Path;
 
 use argon2::{
-    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, Salt, SaltString},
+    password_hash::{PasswordHasher, Salt, SaltString},
     Argon2,
 };
 use rand::rngs::OsRng;
 
-use chacha20poly1305::{
-    aead::{Aead, AeadCore, KeyInit},
-    XChaCha20Poly1305, XNonce,
-};
+use chacha20poly1305::aead::KeyInit;
 
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
 

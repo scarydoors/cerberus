@@ -1,14 +1,4 @@
 use crate::Error;
-use crate::{
-    database::{record_types::EncryptedKeyRecord, Database, Repository},
-    hash_password,
-    nonce_counter::NonceCounter,
-};
-use chacha20poly1305::{
-    aead::{Aead, AeadCore, KeyInit},
-    XChaCha20Poly1305,
-};
-use rand::{rngs::OsRng, CryptoRng, RngCore};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use std::marker::PhantomData;
