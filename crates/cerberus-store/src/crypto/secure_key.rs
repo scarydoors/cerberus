@@ -21,6 +21,13 @@ impl SecureKey {
         }
     }
 
+    pub(crate) fn new_unlocked(encrypted_key: EncryptedKey, decrypted_key: SymmetricKey) -> Self {
+        Self {
+            decrypted_key: Some(decrypted_key),
+            encrypted_key,
+        }
+    }
+
     pub(crate) fn unlock(&mut self, parent_key: &SymmetricKey) -> Result<(), Error> {
         let symmetric_key = self.encrypted_key.try_to_symmetric_key(parent_key)?;
 

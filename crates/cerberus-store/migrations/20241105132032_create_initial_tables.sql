@@ -1,7 +1,6 @@
 CREATE TABLE keys(
        id INTEGER PRIMARY KEY NOT NULL,
-       key_encrypted_data JSONB NOT NULL,
-       next_nonce BLOB NOT NULL
+       key_encrypted_data JSONB NOT NULL
 );
 
 CREATE TABLE items(

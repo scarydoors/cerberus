@@ -8,7 +8,7 @@ use rand::{rngs::OsRng, CryptoRng, RngCore};
 use serde::{de::DeserializeOwned, Serialize};
 use std::marker::PhantomData;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct SymmetricKey {
     id: Option<i64>,
     key: Vec<u8>,

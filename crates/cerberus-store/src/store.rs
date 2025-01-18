@@ -10,6 +10,7 @@ use rand::rngs::OsRng;
 use std::path::Path;
 use std::sync::Arc;
 use std::sync::Mutex;
+use sqlx::SqlitePool;
 
 #[derive(Debug)]
 pub struct Profile {
@@ -54,6 +55,14 @@ impl Store {
             database: Database::new(path).await?,
             master_key: None,
             profile: None,
+        })
+    }
+
+    pub(crate) fn from_pool(pool: SqlitePool) -> Result<Self, Error> {
+        Ok(Store {
+            database: Database::from_pool(pool),
+            master_key: None,
+            profile: None
         })
     }
 
@@ -135,22 +144,21 @@ impl Store {
         let mut derived_key = SymmetricKey::from_password(password.as_bytes(), &salt);
         let master_key = SymmetricKey::generate(&mut OsRng);
 
-        self.profile = Some(
-            self.database
-                .transaction(|mut transaction| {
-                    Box::pin(async move {
-                        let mut encrypted_master_key =
-                            master_key.into_encrypted_key(&mut derived_key);
-                        encrypted_master_key.store(&mut transaction).await?;
-                        let profile_record = transaction
-                            .store_profile(&name, &salt, encrypted_master_key.id().unwrap())
-                            .await?;
 
-                        Ok::<_, Error>(profile_record.into_profile())
-                    })
-                })
-                .await?,
-        );
+        let mut encrypted_master_key = master_key.clone().into_encrypted_key(&mut derived_key);
+        let (profile, encrypted_master_key) = self.database.transaction(|mut transaction| {
+            Box::pin(async move {
+                encrypted_master_key.store(&mut transaction).await?;
+                let profile_record = transaction
+                    .store_profile(&name, &salt, encrypted_master_key.id().unwrap())
+                    .await?;
+
+                Ok::<_, Error>((profile_record.into_profile(), encrypted_master_key))
+            })
+        }).await?;
+
+        self.profile = Some(profile);
+        self.master_key = Some(Arc::new(Mutex::new(SecureKey::new_unlocked(encrypted_master_key, master_key))));
 
         Ok(())
     }
@@ -206,5 +214,23 @@ impl Store {
             },
             None => Ok(None),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sqlx::SqlitePool;
+
+    use crate::database::MIGRATOR;
+
+    #[sqlx::test(migrator = "MIGRATOR")]
+    async fn can_create_vault(pool: SqlitePool) {
+        let mut store = Store::from_pool(pool).unwrap();
+        store.initialize_profile("User".into(), "password".into()).await.unwrap();
+
+        let vault_name = String::from("my vault");
+        let vault = store.create_vault(vault_name.clone()).await.unwrap();
+        assert_eq!(vault.overview().name(), vault_name);
     }
 }
