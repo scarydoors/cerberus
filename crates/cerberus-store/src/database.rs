@@ -29,6 +29,18 @@ pub(crate) trait Repository {
         Ok(vault_record)
     }
 
+    async fn find_vault(&mut self, id: i64) -> Result<Option<VaultRecord>, Error> {
+        let vault_record = sqlx::query_as!(
+            VaultRecord,
+            "SELECT * FROM vaults WHERE id = ?",
+            id
+        )
+        .fetch_optional(self.get_executor())
+        .await?;
+
+        Ok(vault_record)
+    }
+
     async fn store_key(
         &mut self,
         key: &EncryptedData<Vec<u8>>,

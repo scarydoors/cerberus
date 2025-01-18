@@ -38,6 +38,9 @@ pub enum Error {
     #[error("incorrect symmetric key used for decryption")]
     IncorrectKey,
 
+    #[error("key does not exist in database")]
+    KeyDoesNotExist,
+
     #[error("cannot update key in store")]
     CannotUpdateKey,
 

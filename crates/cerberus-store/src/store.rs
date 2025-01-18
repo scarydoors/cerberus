@@ -2,7 +2,7 @@ use crate::crypto::{SecureKey, SecureKeyState, SymmetricKey};
 use crate::database::Database;
 use crate::database::Repository;
 use crate::generate_salt;
-use crate::vault::{Vault, VaultKey};
+use crate::vault::{Vault, VaultKey, VaultOverview};
 use crate::Error;
 use chrono::DateTime;
 use chrono::Utc;
@@ -184,5 +184,27 @@ impl Store {
         let vault_key = VaultKey::new(arc_master_key, encrypted_vault_key);
 
         Ok(vault_record.into_vault(vault_key, database))
+    }
+
+    pub async fn list_vault_overviews(&mut self) -> Result<Vec<VaultOverview>, Error> {
+        Ok(
+            self.database.list_vault_overviews()
+                .await?
+                .into_iter()
+                .map(|record| record.into_vault_overview())
+                .collect()
+        )
+    }
+
+    pub async fn get_vault(&mut self, id: i64) -> Result<Option<Vault>, Error> {
+        match self.database.find_vault(id).await? {
+            Some(vault_record) => {
+                let enc_vault_key = self.database.find_key(vault_record.key_id).await?.ok_or(Error::KeyDoesNotExist)?.into_encrypted_key();
+                let vault_key = VaultKey::new(self.master_key.as_ref().unwrap().clone(), enc_vault_key);
+
+                Ok(Some(vault_record.into_vault(vault_key, self.database.clone())))
+            },
+            None => Ok(None),
+        }
     }
 }
