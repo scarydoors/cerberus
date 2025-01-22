@@ -1,10 +1,10 @@
 use std::sync::{Arc, Mutex};
 
 use chrono::{DateTime, Utc};
-use serde::{de::{self, DeserializeOwned}, Serialize};
+use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{
-    crypto::{self, Cipher, EncryptedData, EncryptedKey, SecureKey, SymmetricKey},
+    crypto::{Cipher, EncryptedData, EncryptedKey, SecureKey, SymmetricKey},
     database::Database, Error,
 };
 

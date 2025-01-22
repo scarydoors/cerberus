@@ -41,6 +41,17 @@ pub(crate) trait Repository {
         Ok(vault_record)
     }
 
+    async fn list_vault_overviews(&mut self) -> Result<Vec<VaultOverviewRecord>, Error> {
+        let vault_overview_records = sqlx::query_as!(
+            VaultOverviewRecord,
+            "SELECT id, name FROM vaults"
+        )
+            .fetch_all(self.get_executor())
+            .await?;
+
+        Ok(vault_overview_records)
+    }
+
     async fn store_key(
         &mut self,
         key: &EncryptedData<Vec<u8>>,
@@ -54,6 +65,20 @@ pub(crate) trait Repository {
             serialized_key,
         )
         .fetch_one(self.get_executor())
+        .await?;
+
+        Ok(key_record)
+    }
+
+    async fn find_key(&mut self, key_id: i64) -> Result<Option<EncryptedKeyRecord>, Error> {
+        let key_record = sqlx::query_as!(
+            EncryptedKeyRecord,
+            "SELECT id, key_encrypted_data as 'key_encrypted_data: Json<EncryptedData<Vec<u8>>>'
+            FROM keys
+            WHERE id = ?",
+            key_id
+        )
+        .fetch_optional(self.get_executor())
         .await?;
 
         Ok(key_record)
@@ -89,31 +114,6 @@ pub(crate) trait Repository {
         .await?;
 
         Ok(profile)
-    }
-
-    async fn find_key(&mut self, key_id: i64) -> Result<Option<EncryptedKeyRecord>, Error> {
-        let key_record = sqlx::query_as!(
-            EncryptedKeyRecord,
-            "SELECT id, key_encrypted_data as 'key_encrypted_data: Json<EncryptedData<Vec<u8>>>'
-            FROM keys
-            WHERE id = ?",
-            key_id
-        )
-        .fetch_optional(self.get_executor())
-        .await?;
-
-        Ok(key_record)
-    }
-
-    async fn list_vault_overviews(&mut self) -> Result<Vec<VaultOverviewRecord>, Error> {
-        let vault_overview_records = sqlx::query_as!(
-            VaultOverviewRecord,
-            "SELECT id, name FROM vaults"
-        )
-            .fetch_all(self.get_executor())
-            .await?;
-
-        Ok(vault_overview_records)
     }
 
     fn get_executor(&mut self) -> impl Executor<'_, Database = Sqlite>;
