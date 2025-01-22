@@ -16,9 +16,9 @@ impl EncryptedKey {
         }
     }
 
-    pub(crate) fn try_to_symmetric_key(
+    pub(crate) fn try_to_symmetric_key<K: Cipher>(
         &self,
-        parent_key: &SymmetricKey,
+        parent_key: &K,
     ) -> Result<SymmetricKey, Error> {
         let decrypted_key = parent_key.decrypt(&self.key_encrypted_data)?;
         Ok(SymmetricKey::new(&decrypted_key, self.id))
