@@ -1,10 +1,8 @@
-use chrono::NaiveDateTime;
-use sqlx::types::Json;
+use chrono::{NaiveDateTime};
+use sqlx::{database, types::Json};
 
 use crate::{
-    crypto::{EncryptedData, EncryptedKey},
-    store::Profile,
-    vault::{Vault, VaultKey, VaultPreview},
+    crypto::{EncryptedData, EncryptedDataKeyPair, EncryptedKey}, item::{Item, ItemData, ItemOverview}, store::Profile, vault::{Vault, VaultKey, VaultPreview}
 };
 
 use super::Database;
@@ -86,5 +84,31 @@ impl EncryptedKeyRecord {
 impl From<EncryptedKeyRecord> for EncryptedKey {
     fn from(record: EncryptedKeyRecord) -> Self {
         record.into_encrypted_key()
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct ItemRecord {
+    pub(crate) id: i64,
+    pub(crate) vault_id: i64,
+    pub(crate) overview_encrypted_data: Json<EncryptedData<ItemOverview>>,
+    pub(crate) overview_key_id: i64,
+    pub(crate) item_encrypted_data: Json<EncryptedData<ItemData>>,
+    pub(crate) item_key_id: i64,
+    pub(crate) created_at: NaiveDateTime,
+    pub(crate) updated_at: NaiveDateTime,
+}
+
+impl ItemRecord {
+    pub(crate) fn into_item(self, overview_key: EncryptedKey, data_key: EncryptedKey, vault_key: VaultKey, database: Database) -> Item {
+        Item::new(
+            self.id,
+            EncryptedDataKeyPair::new(self.overview_encrypted_data.0, overview_key),
+            EncryptedDataKeyPair::new(self.item_encrypted_data.0, data_key),
+            self.created_at.and_utc(),
+            self.updated_at.and_utc(),
+            vault_key,
+            database
+        )
     }
 }

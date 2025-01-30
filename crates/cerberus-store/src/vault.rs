@@ -7,7 +7,7 @@ use crate::{
     database::Database,
     item::{ItemData, ItemOverview},
     crypto::{Cipher, EncryptedData, EncryptedKey, SecureKey, SymmetricKey},
-    database::Database, Error,
+    Error,
 };
 
 pub(crate) struct VaultKey {

@@ -4,6 +4,8 @@ use std::{future::Future, path::Path};
 use sqlx::Error as SqlxError;
 use sqlx::{sqlite::SqliteConnectOptions, types::Json, Executor, Sqlite, SqlitePool, Transaction};
 
+use crate::crypto::EncryptedDataKeyPair;
+use crate::item::{ItemData, ItemOverview};
 use crate::{
     crypto::EncryptedData,
     Error,
@@ -13,7 +15,7 @@ pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
 
 pub mod record_types;
 
-use record_types::{EncryptedKeyRecord, ProfileRecord, VaultRecord, VaultPreviewRecord};
+use record_types::{EncryptedKeyRecord, ItemRecord, ProfileRecord, VaultPreviewRecord, VaultRecord};
 
 pub(crate) trait Repository {
     async fn store_vault(&mut self, name: &str, key_id: i64) -> Result<VaultRecord, Error> {
@@ -49,8 +51,8 @@ pub(crate) trait Repository {
         let key_record = sqlx::query_as!(
             EncryptedKeyRecord,
             "INSERT INTO keys(key_encrypted_data)
-            VALUES (?)
-            RETURNING id, key_encrypted_data as 'key_encrypted_data: Json<EncryptedData<Vec<u8>>>'",
+             VALUES (?)
+             RETURNING id, key_encrypted_data as 'key_encrypted_data: Json<EncryptedData<Vec<u8>>>'",
             serialized_key,
         )
         .fetch_one(self.get_executor())
@@ -63,8 +65,8 @@ pub(crate) trait Repository {
         let key_record = sqlx::query_as!(
             EncryptedKeyRecord,
             "SELECT id, key_encrypted_data as 'key_encrypted_data: Json<EncryptedData<Vec<u8>>>'
-            FROM keys
-            WHERE id = ?",
+             FROM keys
+             WHERE id = ?",
             key_id
         )
         .fetch_optional(self.get_executor())
@@ -93,8 +95,8 @@ pub(crate) trait Repository {
         let profile = sqlx::query_as!(
             ProfileRecord,
             "INSERT INTO profiles(name, salt, key_id)
-            VALUES (?, ?, ?)
-            RETURNING id, name, salt, key_id, created_at, updated_at",
+             VALUES (?, ?, ?)
+             RETURNING id, name, salt, key_id, created_at, updated_at",
             name,
             salt,
             key_id
@@ -114,6 +116,47 @@ pub(crate) trait Repository {
             .await?;
 
         Ok(vault_overview_records)
+    }
+
+    async fn store_item(
+        &mut self,
+        vault_id: i64,
+        enc_item_overview: &EncryptedData<ItemOverview>,
+        item_overview_key_id: i64,
+        enc_item_data: &EncryptedData<ItemData>,
+        item_data_key_id: i64
+    ) -> Result<ItemRecord, Error> {
+        let serialized_item_overview = serde_json::to_string(enc_item_overview)?;
+        let serialized_item_data = serde_json::to_string(enc_item_data)?;
+        let item_record = sqlx::query_as!(
+            ItemRecord,
+            "INSERT INTO items(
+                 vault_id,
+                 overview_encrypted_data,
+                 overview_key_id,
+                 item_encrypted_data,
+                 item_key_id
+             )
+             VALUES (?, ?, ?, ?, ?)
+             RETURNING
+                 id,
+                 vault_id,
+                 overview_encrypted_data as 'overview_encrypted_data: Json<EncryptedData<ItemOverview>>',
+                 overview_key_id,
+                 item_encrypted_data as 'item_encrypted_data: Json<EncryptedData<ItemData>>',
+                 item_key_id,
+                 created_at,
+                 updated_at",
+            vault_id,
+            serialized_item_overview,
+            item_overview_key_id,
+            serialized_item_data,
+            item_data_key_id,
+        )
+            .fetch_one(self.get_executor())
+            .await?;
+
+        Ok(item_record)
     }
 
     fn get_executor(&mut self) -> impl Executor<'_, Database = Sqlite>;

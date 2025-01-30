@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::{crypto::EncryptedDataKeyPair, database::Database, vault::VaultKey};
 
 pub struct Item {
+    id: i64,
     enc_overview: EncryptedDataKeyPair<ItemOverview>,
     enc_data: EncryptedDataKeyPair<ItemData>,
     created_at: DateTime<Utc>,
@@ -12,7 +13,7 @@ pub struct Item {
     database: Database,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ItemOverview {
     name: String,
     site: String
@@ -27,7 +28,7 @@ impl ItemOverview {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ItemData {
     secret: String
 }
@@ -44,12 +45,12 @@ impl Item {
     pub(crate) fn new(
         id: i64,
         enc_overview: EncryptedDataKeyPair<ItemOverview>,
-        enc_data: EncryptedDataKeyPair<ItemOverview>,
+        enc_data: EncryptedDataKeyPair<ItemData>,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
         vault_key: VaultKey,
         database: Database,
-    ) {
+    ) -> Item {
         Self {
             id,
             enc_overview,

@@ -71,6 +71,10 @@ impl<T: Serialize + DeserializeOwned> EncryptedDataKeyPair<T> {
         &self.encrypted_key
     }
 
+    pub(crate) fn encrypted_data(&self) -> &EncryptedData<T> {
+        &self.encrypted_data
+    }
+
     fn get_encryption_key<K: Cipher>(&self, parent_key: &K) -> Result<SymmetricKey, Error> {
         let symmetric_key = self.encrypted_key.try_to_symmetric_key(parent_key)?;
         Ok(symmetric_key)
