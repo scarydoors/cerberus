@@ -1,6 +1,6 @@
-use super::{Cipher, EncryptedData, SymmetricKey};
-use crate::database::Repository;
 use crate::Error;
+use crate::database::Repository;
+use super::{SymmetricKey, EncryptedData, Cipher};
 
 #[derive(Debug)]
 pub(crate) struct EncryptedKey {
@@ -16,16 +16,15 @@ impl EncryptedKey {
         }
     }
 
-    pub(crate) fn try_to_symmetric_key(
-        &self,
-        parent_key: &SymmetricKey,
-    ) -> Result<SymmetricKey, Error> {
+    pub(crate) fn try_to_symmetric_key<K: Cipher>(&self, parent_key: &K) -> Result<SymmetricKey, Error> {
         let decrypted_key = parent_key.decrypt(&self.key_encrypted_data)?;
         Ok(SymmetricKey::new(&decrypted_key, self.id))
     }
 
     pub(crate) async fn store<R: Repository>(&mut self, repo: &mut R) -> Result<(), Error> {
-        let key_record = repo.store_key(&self.key_encrypted_data).await?;
+        let key_record = repo
+            .store_key(&self.key_encrypted_data)
+            .await?;
 
         self.id = Some(key_record.id);
 

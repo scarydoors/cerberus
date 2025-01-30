@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 use crate::{
     crypto::{EncryptedKey, SecureKey},
     database::Database,
+    item::{ItemData, ItemOverview},
 };
 
 pub(crate) struct VaultKey {
@@ -22,7 +23,8 @@ impl VaultKey {
 }
 
 pub struct Vault {
-    vault_overview: VaultOverview,
+    id: i64,
+    name: String,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
     database: Database,
@@ -31,14 +33,16 @@ pub struct Vault {
 
 impl Vault {
     pub(crate) fn new(
-        vault_overview: VaultOverview,
+        id: i64,
+        name: String,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
         database: Database,
         vault_key: VaultKey,
     ) -> Self {
         Self {
-            vault_overview,
+            id,
+            name,
             created_at,
             updated_at,
             database,
@@ -46,26 +50,21 @@ impl Vault {
         }
     }
 
-    pub fn overview(&self) -> &VaultOverview {
-        &self.vault_overview
+    pub fn create_item(&self, item_overview: ItemOverview, item_data: ItemData) {
+
     }
 }
 
-pub struct VaultOverview {
+pub struct VaultPreview {
     id: i64,
     name: String,
 }
 
-impl VaultOverview {
+impl VaultPreview {
     pub(crate) fn new(id: i64, name: String) -> Self {
-        Self { id, name }
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn id(&self) -> i64 {
-        self.id
+        Self {
+            id,
+            name,
+        }
     }
 }

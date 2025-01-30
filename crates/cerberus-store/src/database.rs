@@ -13,7 +13,7 @@ pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
 
 pub mod record_types;
 
-use record_types::{EncryptedKeyRecord, ProfileRecord, VaultRecord, VaultOverviewRecord};
+use record_types::{EncryptedKeyRecord, ProfileRecord, VaultRecord, VaultPreviewRecord};
 
 pub(crate) trait Repository {
     async fn store_vault(&mut self, name: &str, key_id: i64) -> Result<VaultRecord, Error> {
@@ -105,9 +105,9 @@ pub(crate) trait Repository {
         Ok(key_record)
     }
 
-    async fn list_vault_overviews(&mut self) -> Result<Vec<VaultOverviewRecord>, Error> {
+    async fn list_vault_previews(&mut self) -> Result<Vec<VaultPreviewRecord>, Error> {
         let vault_overview_records = sqlx::query_as!(
-            VaultOverviewRecord,
+            VaultPreviewRecord,
             "SELECT id, name FROM vaults"
         )
             .fetch_all(self.get_executor())

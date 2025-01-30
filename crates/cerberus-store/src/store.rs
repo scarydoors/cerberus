@@ -2,7 +2,7 @@ use crate::crypto::{SecureKey, SecureKeyState, SymmetricKey};
 use crate::database::Database;
 use crate::database::Repository;
 use crate::generate_salt;
-use crate::vault::{Vault, VaultKey, VaultOverview};
+use crate::vault::{Vault, VaultKey, VaultPreview};
 use crate::Error;
 use chrono::DateTime;
 use chrono::Utc;
@@ -194,12 +194,12 @@ impl Store {
         Ok(vault_record.into_vault(vault_key, database))
     }
 
-    pub async fn list_vault_overviews(&mut self) -> Result<Vec<VaultOverview>, Error> {
+    pub async fn list_vaults(&mut self) -> Result<Vec<VaultPreview>, Error> {
         Ok(
-            self.database.list_vault_overviews()
+            self.database.list_vault_previews()
                 .await?
                 .into_iter()
-                .map(|record| record.into_vault_overview())
+                .map(|record| record.into_vault_preview())
                 .collect()
         )
     }

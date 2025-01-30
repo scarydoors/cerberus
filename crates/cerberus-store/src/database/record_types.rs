@@ -4,7 +4,7 @@ use sqlx::types::Json;
 use crate::{
     crypto::{EncryptedData, EncryptedKey},
     store::Profile,
-    vault::{Vault, VaultKey, VaultOverview},
+    vault::{Vault, VaultKey, VaultPreview},
 };
 
 use super::Database;
@@ -49,9 +49,9 @@ pub(crate) struct VaultRecord {
 
 impl VaultRecord {
     pub(crate) fn into_vault(self, vault_key: VaultKey, database: Database) -> Vault {
-        let overview = VaultOverview::new(self.id, self.name);
         Vault::new(
-            overview,
+            self.id,
+            self.name,
             self.created_at.and_utc(),
             self.updated_at.and_utc(),
             database,
@@ -60,14 +60,14 @@ impl VaultRecord {
     }
 }
 
-pub(crate) struct VaultOverviewRecord {
+pub(crate) struct VaultPreviewRecord {
     pub(crate) id: i64,
     pub(crate) name: String,
 }
 
-impl VaultOverviewRecord {
-    pub(crate) fn into_vault_overview(self) -> VaultOverview {
-        VaultOverview::new(self.id, self.name)
+impl VaultPreviewRecord {
+    pub(crate) fn into_vault_preview(self) -> VaultPreview {
+        VaultPreview::new(self.id, self.name)
     }
 }
 
