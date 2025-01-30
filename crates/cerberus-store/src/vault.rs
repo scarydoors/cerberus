@@ -1,11 +1,13 @@
 use std::sync::{Arc, Mutex};
 
 use chrono::{DateTime, Utc};
+use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{
-    crypto::{EncryptedKey, SecureKey},
     database::Database,
     item::{ItemData, ItemOverview},
+    crypto::{Cipher, EncryptedData, EncryptedKey, SecureKey, SymmetricKey},
+    database::Database, Error,
 };
 
 pub(crate) struct VaultKey {
@@ -19,6 +21,27 @@ impl VaultKey {
             master_key,
             vault_key,
         }
+    }
+
+    pub(crate) fn get_symmetric_key(&self) -> Result<SymmetricKey, Error> {
+        let master_key = self.master_key.lock().unwrap();
+        let vault_key = self.vault_key.try_to_symmetric_key(&*master_key)?;
+
+        Ok(vault_key)
+    }
+}
+
+impl Cipher for VaultKey {
+    fn encrypt<T: Serialize + DeserializeOwned>(&self, data: &T) -> Result<EncryptedData<T>, Error> {
+        let key = self.get_symmetric_key()?;
+
+        Ok(key.encrypt(data)?)
+    }
+
+    fn decrypt<T: Serialize + DeserializeOwned>(&self, data: &EncryptedData<T>) -> Result<T, Error> {
+        let key = self.get_symmetric_key()?;
+
+        Ok(key.decrypt(data)?)
     }
 }
 

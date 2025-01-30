@@ -59,6 +59,20 @@ pub(crate) trait Repository {
         Ok(key_record)
     }
 
+    async fn find_key(&mut self, key_id: i64) -> Result<Option<EncryptedKeyRecord>, Error> {
+        let key_record = sqlx::query_as!(
+            EncryptedKeyRecord,
+            "SELECT id, key_encrypted_data as 'key_encrypted_data: Json<EncryptedData<Vec<u8>>>'
+            FROM keys
+            WHERE id = ?",
+            key_id
+        )
+        .fetch_optional(self.get_executor())
+        .await?;
+
+        Ok(key_record)
+    }
+
     async fn get_profile(&mut self) -> Result<Option<ProfileRecord>, Error> {
         let profile = sqlx::query_as!(
             ProfileRecord,
@@ -89,20 +103,6 @@ pub(crate) trait Repository {
         .await?;
 
         Ok(profile)
-    }
-
-    async fn find_key(&mut self, key_id: i64) -> Result<Option<EncryptedKeyRecord>, Error> {
-        let key_record = sqlx::query_as!(
-            EncryptedKeyRecord,
-            "SELECT id, key_encrypted_data as 'key_encrypted_data: Json<EncryptedData<Vec<u8>>>'
-            FROM keys
-            WHERE id = ?",
-            key_id
-        )
-        .fetch_optional(self.get_executor())
-        .await?;
-
-        Ok(key_record)
     }
 
     async fn list_vault_previews(&mut self) -> Result<Vec<VaultPreviewRecord>, Error> {
