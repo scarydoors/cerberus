@@ -4,10 +4,7 @@ use chrono::{DateTime, Utc};
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{
-    database::Database,
-    item::{ItemData, ItemOverview},
-    crypto::{Cipher, EncryptedData, EncryptedKey, SecureKey, SymmetricKey},
-    Error,
+    crypto::{Cipher, EncryptedData, EncryptedKey, SecureKey, SymmetricKey}, database::Database, item::{Item, ItemData, ItemOverview}, Error
 };
 
 pub(crate) struct VaultKey {
@@ -73,8 +70,10 @@ impl Vault {
         }
     }
 
-    pub fn create_item(&self, item_overview: ItemOverview, item_data: ItemData) {
+    pub fn create_item(&self, item_overview: ItemOverview, item_data: ItemData) -> Result<Item, Error> {
 
+
+        todo!()
     }
 }
 
