@@ -15,7 +15,7 @@ pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
 
 pub mod record_types;
 
-use record_types::{EncryptedKeyRecord, ItemRecord, ProfileRecord, VaultPreviewRecord, VaultRecord};
+use record_types::{EncryptedKeyRecord, ItemPreviewRecord, ItemRecord, ProfileRecord, VaultPreviewRecord, VaultRecord};
 
 pub(crate) trait Repository {
     async fn store_vault(&mut self, name: &str, key_id: i64) -> Result<VaultRecord, Error> {
@@ -157,6 +157,29 @@ pub(crate) trait Repository {
             .await?;
 
         Ok(item_record)
+    }
+
+    async fn list_item_previews(&mut self, vault_id: Option<i64>) -> Result<Vec<ItemPreviewRecord>, Error> {
+        let vault_id = vault_id.unwrap();
+        let item_preview_records = sqlx::query_as!(
+            ItemPreviewRecord,
+            "SELECT
+                 items.id,
+                 items.vault_id,
+                 items.overview_encrypted_data as 'overview_encrypted_data: Json<EncryptedData<ItemOverview>>',
+                 items.created_at,
+                 items.updated_at,
+                 keys.id as 'overview_key_id',
+                 keys.key_encrypted_data as 'overview_key_encrypted_data: Json<EncryptedData<Vec<u8>>>'
+             FROM items
+             INNER JOIN (SELECT id, key_encrypted_data  FROM keys) AS keys ON keys.id = items.overview_key_id
+             WHERE items.vault_id = ?",
+            vault_id
+        )
+            .fetch_all(self.get_executor())
+            .await?;
+
+        Ok(item_preview_records)
     }
 
     fn get_executor(&mut self) -> impl Executor<'_, Database = Sqlite>;

@@ -195,13 +195,13 @@ impl Store {
     }
 
     pub async fn list_vaults(&mut self) -> Result<Vec<VaultPreview>, Error> {
-        Ok(
-            self.database.list_vault_previews()
-                .await?
-                .into_iter()
-                .map(|record| record.into_vault_preview())
-                .collect()
-        )
+        let vault_previews = self.database.list_vault_previews()
+            .await?
+            .into_iter()
+            .map(|record| record.into_vault_preview())
+            .collect();
+
+        Ok(vault_previews)
     }
 
     pub async fn get_vault(&mut self, id: i64) -> Result<Option<Vault>, Error> {
@@ -231,6 +231,6 @@ mod tests {
 
         let vault_name = String::from("my vault");
         let vault = store.create_vault(vault_name.clone()).await.unwrap();
-        assert_eq!(vault.overview().name(), vault_name);
+        assert_eq!(vault.name(), vault_name);
     }
 }

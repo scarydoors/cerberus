@@ -2,7 +2,7 @@ use chrono::{NaiveDateTime};
 use sqlx::{database, types::Json};
 
 use crate::{
-    crypto::{EncryptedData, EncryptedDataKeyPair, EncryptedKey}, item::{Item, ItemData, ItemOverview}, store::Profile, vault::{Vault, VaultKey, VaultPreview}
+    crypto::{Cipher, EncryptedData, EncryptedDataKeyPair, EncryptedKey}, item::{Item, ItemData, ItemOverview, ItemPreview}, store::Profile, vault::{Vault, VaultKey, VaultPreview}, Error
 };
 
 use super::Database;
@@ -79,11 +79,34 @@ impl EncryptedKeyRecord {
     pub(crate) fn into_encrypted_key(self) -> EncryptedKey {
         EncryptedKey::new(Some(self.id), self.key_encrypted_data.0)
     }
-}
+&}
 
 impl From<EncryptedKeyRecord> for EncryptedKey {
     fn from(record: EncryptedKeyRecord) -> Self {
         record.into_encrypted_key()
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct ItemPreviewRecord {
+    pub(crate) id: i64,
+    pub(crate) vault_id: i64,
+    pub(crate) overview_encrypted_data: Json<EncryptedData<ItemOverview>>,
+    pub(crate) overview_key_id: i64,
+    pub(crate) overview_key_encrypted_data: Json<EncryptedData<Vec<u8>>>,
+    pub(crate) created_at: NaiveDateTime,
+    pub(crate) updated_at: NaiveDateTime,
+}
+
+impl ItemPreviewRecord {
+    pub(crate) fn try_into_item_preview<K: Cipher>(self, parent_key: &K) -> Result<ItemPreview, Error> {
+        let enc_overview_key = EncryptedKey::new(Some(self.overview_key_id), self.overview_key_encrypted_data.0);
+        let overview_key = enc_overview_key.try_to_symmetric_key(parent_key)?;
+
+        let overview_data = overview_key.decrypt(&self.overview_encrypted_data.0)?;
+
+        let preview = ItemPreview::new(self.id, overview_data);
+        Ok(preview)
     }
 }
 

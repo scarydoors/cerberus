@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::{crypto::EncryptedDataKeyPair, database::Database, vault::VaultKey};
+use crate::{crypto::EncryptedDataKeyPair, database::Database, vault::VaultKey, Error};
 
 pub struct Item {
     id: i64,
@@ -11,6 +11,25 @@ pub struct Item {
     updated_at: DateTime<Utc>,
     vault_key: VaultKey,
     database: Database,
+}
+
+pub struct ItemPreview {
+    id: i64,
+    overview: ItemOverview
+}
+
+impl ItemPreview {
+    pub fn new(id: i64, overview: ItemOverview) -> Self {
+        Self { id, overview }
+    }
+
+    pub fn id(&self) -> i64 {
+        self.id
+    }
+
+    pub fn overview(&self) -> &ItemOverview {
+        &self.overview
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -60,5 +79,13 @@ impl Item {
             vault_key,
             database,
         }
+    }
+
+    pub fn overview(&self) -> Result<ItemOverview, Error> {
+        Ok(self.enc_overview.decrypt(&self.vault_key)?)
+    }
+
+    pub fn data(&self) -> Result<ItemData, Error> {
+        Ok(self.enc_data.decrypt(&self.vault_key)?)
     }
 }

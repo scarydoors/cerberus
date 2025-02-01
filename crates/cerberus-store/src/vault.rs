@@ -1,12 +1,14 @@
 use std::sync::{Arc, Mutex};
 
 use chrono::{DateTime, Utc};
+use rand::rngs::OsRng;
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{
-    crypto::{Cipher, EncryptedData, EncryptedKey, SecureKey, SymmetricKey}, database::Database, item::{Item, ItemData, ItemOverview}, Error
+    crypto::{Cipher, EncryptedData, EncryptedKey, SecureKey, SymmetricKey}, database::{self, Database, Repository}, item::{Item, ItemData, ItemOverview, ItemPreview}, Error
 };
 
+#[derive(Debug, Clone)]
 pub(crate) struct VaultKey {
     master_key: Arc<Mutex<SecureKey>>,
     vault_key: EncryptedKey,
@@ -70,10 +72,61 @@ impl Vault {
         }
     }
 
-    pub fn create_item(&self, item_overview: ItemOverview, item_data: ItemData) -> Result<Item, Error> {
+    pub async fn create_item(&self, item_overview: ItemOverview, item_data: ItemData) -> Result<Item, Error> {
+        let overview_key = SymmetricKey::generate(&mut OsRng);
+        let data_key = SymmetricKey::generate(&mut OsRng);
 
+        let enc_item_overview = overview_key.encrypt(&item_overview)?;
+        let enc_item_data = data_key.encrypt(&item_data)?;
 
-        todo!()
+        let id = self.id;
+        let vault_key = self.vault_key.clone();
+        let database = self.database.clone();
+
+        let item = self.database.transaction(|mut transaction| {
+            Box::pin(async move {
+                let mut enc_overview_key = overview_key.into_encrypted_key(&vault_key);
+                enc_overview_key.store(&mut transaction).await?;
+                let mut enc_data_key = data_key.into_encrypted_key(&vault_key);
+                enc_data_key.store(&mut transaction).await?;
+
+                let item_record = transaction.store_item(
+                    id,
+                    &enc_item_overview,
+                    enc_overview_key.id().unwrap(),
+                    &enc_item_data,
+                    enc_data_key.id().unwrap()
+                ).await?;
+
+                Ok::<_, Error>(item_record.into_item(enc_overview_key, enc_data_key, vault_key, database))
+            })
+        }).await?;
+
+        Ok(item)
+    }
+
+    pub async fn list_items(&mut self) -> Result<Vec<ItemPreview>, Error> {
+        let vault_key = self.vault_key.get_symmetric_key()?;
+
+        let item_previews = self.database.list_item_previews(Some(self.id))
+            .await?
+            .into_iter()
+            .map(|record| record.try_into_item_preview(&vault_key))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(item_previews)
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn created_at(&self) -> DateTime<Utc> {
+        self.created_at
+    }
+
+    pub fn updated_at(&self) -> DateTime<Utc> {
+        self.updated_at
     }
 }
 

@@ -2,7 +2,7 @@ use crate::Error;
 use crate::database::Repository;
 use super::{SymmetricKey, EncryptedData, Cipher};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct EncryptedKey {
     id: Option<i64>,
     key_encrypted_data: EncryptedData<Vec<u8>>,
