@@ -1,4 +1,5 @@
 use std::pin::Pin;
+use std::sync::Arc;
 use std::{future::Future, path::Path};
 
 use sqlx::Error as SqlxError;
@@ -15,7 +16,7 @@ pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
 
 pub mod record_types;
 
-use record_types::{EncryptedKeyRecord, ItemPreviewRecord, ItemRecord, ProfileRecord, VaultPreviewRecord, VaultRecord};
+use record_types::{EncryptedKeyRecord, ItemPreviewRecord, ItemRecord, ItemRecordWithKeys, ProfileRecord, VaultPreviewRecord, VaultRecord};
 
 pub(crate) trait Repository {
     async fn store_vault(&mut self, name: &str, key_id: i64) -> Result<VaultRecord, Error> {
@@ -159,6 +160,47 @@ pub(crate) trait Repository {
         Ok(item_record)
     }
 
+    async fn find_item(&mut self, id: i64) -> Result<ItemRecordWithKeys, Error> {
+        let record = sqlx::query!(
+            "SELECT
+                 items.id,
+                 items.vault_id,
+                 items.overview_encrypted_data as 'overview_encrypted_data: Json<EncryptedData<ItemOverview>>',
+                 items.item_encrypted_data as 'item_encrypted_data: Json<EncryptedData<ItemData>>',
+                 items.created_at,
+                 items.updated_at,
+                 overview_keys.id as 'overview_key_id',
+                 overview_keys.key_encrypted_data as 'overview_key_encrypted_data: Json<EncryptedData<Vec<u8>>>',
+                 data_keys.id as 'item_key_id',
+                 data_keys.key_encrypted_data as 'data_key_encrypted_data: Json<EncryptedData<Vec<u8>>>'
+             FROM items
+             INNER JOIN (SELECT id, key_encrypted_data  FROM keys) AS overview_keys ON overview_keys.id = items.overview_key_id
+             INNER JOIN (SELECT id, key_encrypted_data  FROM keys) AS data_keys ON data_keys.id = items.item_key_id
+             WHERE items.id = ?
+             GROUP BY items.id",
+            id
+        )
+            .fetch_one(self.get_executor())
+            .await?;
+
+        let item_record_with_keys = ItemRecordWithKeys {
+            item_record: ItemRecord {
+                id: record.id,
+                vault_id: record.vault_id,
+                overview_encrypted_data: record.overview_encrypted_data.clone(),
+                overview_key_id: record.overview_key_id,
+                item_encrypted_data: record.item_encrypted_data.clone(),
+                item_key_id: record.item_key_id,
+                created_at: record.created_at,
+                updated_at: record.updated_at
+            },
+            overview_key: record.overview_key_encrypted_data.clone(),
+            data_key: record.data_key_encrypted_data.clone(),
+        };
+
+        Ok(item_record_with_keys)
+    }
+
     async fn list_item_previews(&mut self, vault_id: Option<i64>) -> Result<Vec<ItemPreviewRecord>, Error> {
         let vault_id = vault_id.unwrap();
         let item_preview_records = sqlx::query_as!(
@@ -173,7 +215,8 @@ pub(crate) trait Repository {
                  keys.key_encrypted_data as 'overview_key_encrypted_data: Json<EncryptedData<Vec<u8>>>'
              FROM items
              INNER JOIN (SELECT id, key_encrypted_data  FROM keys) AS keys ON keys.id = items.overview_key_id
-             WHERE items.vault_id = ?",
+             WHERE items.vault_id = ?
+             GROUP BY items.id",
             vault_id
         )
             .fetch_all(self.get_executor())

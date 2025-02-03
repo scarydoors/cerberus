@@ -18,6 +18,8 @@ mod crypto;
 mod database;
 mod nonce_counter;
 
+pub use store::*;
+
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("unable to create database: {0}")]

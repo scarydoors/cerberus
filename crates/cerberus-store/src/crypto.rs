@@ -12,12 +12,23 @@ pub(crate) use encrypted_key::EncryptedKey;
 pub(crate) use secure_key::{SecureKey, SecureKeyState};
 pub(crate) use symmetric_key::SymmetricKey;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct EncryptedData<T: Serialize + DeserializeOwned> {
     enc_data: Vec<u8>,
     nonce: [u8; 24],
     key_id: Option<i64>,
     _phantom: PhantomData<T>,
+}
+
+impl<T: Serialize + DeserializeOwned> Clone for EncryptedData<T> {
+    fn clone(&self) -> Self {
+        Self {
+            enc_data: self.enc_data.clone(),
+            nonce: self.nonce,
+            key_id: self.key_id,
+            _phantom: PhantomData
+        }
+    }
 }
 
 impl<T: Serialize + DeserializeOwned> EncryptedData<T> {

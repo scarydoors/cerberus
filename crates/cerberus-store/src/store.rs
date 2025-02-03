@@ -58,7 +58,8 @@ impl Store {
         })
     }
 
-    pub(crate) fn from_pool(pool: SqlitePool) -> Result<Self, Error> {
+    #[cfg(test)]
+    pub fn from_pool(pool: SqlitePool) -> Result<Self, Error> {
         Ok(Store {
             database: Database::from_pool(pool),
             master_key: None,
@@ -85,7 +86,7 @@ impl Store {
         }
     }
 
-    pub async fn lock(&mut self) -> Result<(), Error> {
+    pub fn lock(&mut self) -> Result<(), Error> {
         match self.master_key.as_ref() {
             Some(master_key_mutex) => {
                 let mut master_key = master_key_mutex.lock().unwrap();

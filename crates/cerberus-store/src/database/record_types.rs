@@ -2,7 +2,7 @@ use chrono::{NaiveDateTime};
 use sqlx::{database, types::Json};
 
 use crate::{
-    crypto::{Cipher, EncryptedData, EncryptedDataKeyPair, EncryptedKey}, item::{Item, ItemData, ItemOverview, ItemPreview}, store::Profile, vault::{Vault, VaultKey, VaultPreview}, Error
+    crypto::{Cipher, EncryptedData, EncryptedDataKeyPair, EncryptedKey}, item::{Item, ItemData, ItemOverview, ItemPreview}, store::Profile, vault::{self, Vault, VaultKey, VaultPreview}, Error
 };
 
 use super::Database;
@@ -133,5 +133,20 @@ impl ItemRecord {
             vault_key,
             database
         )
+    }
+}
+
+pub(crate) struct ItemRecordWithKeys {
+    pub(crate) item_record: ItemRecord,
+    pub(crate) overview_key: Json<EncryptedData<Vec<u8>>>,
+    pub(crate) data_key: Json<EncryptedData<Vec<u8>>>,
+}
+
+impl ItemRecordWithKeys {
+    pub(crate) fn into_item(self, vault_key: VaultKey, database: Database) -> Item {
+        let overview_key = EncryptedKey::new(Some(self.item_record.overview_key_id), self.overview_key.0);
+        let data_key = EncryptedKey::new(Some(self.item_record.item_key_id), self.data_key.0);
+
+        self.item_record.into_item(overview_key, data_key, vault_key, database)
     }
 }

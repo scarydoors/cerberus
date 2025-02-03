@@ -105,6 +105,10 @@ impl Vault {
         Ok(item)
     }
 
+    pub async fn get_item(id: i64) -> Result<Item, Error> {
+
+    }
+
     pub async fn list_items(&mut self) -> Result<Vec<ItemPreview>, Error> {
         let vault_key = self.vault_key.get_symmetric_key()?;
 
@@ -141,5 +145,13 @@ impl VaultPreview {
             id,
             name,
         }
+    }
+
+    pub fn id(&self) -> i64 {
+        self.id
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
     }
 }

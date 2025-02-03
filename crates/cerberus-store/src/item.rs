@@ -45,6 +45,14 @@ impl ItemOverview {
             site
         }
     }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn site(&self) -> &str {
+        &self.site
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -57,6 +65,10 @@ impl ItemData {
         Self {
             secret
         }
+    }
+
+    pub fn secret(&self) -> &str {
+        &self.secret
     }
 }
 
