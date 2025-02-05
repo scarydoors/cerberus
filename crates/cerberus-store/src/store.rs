@@ -58,7 +58,6 @@ impl Store {
         })
     }
 
-    #[cfg(test)]
     pub fn from_pool(pool: SqlitePool) -> Result<Self, Error> {
         Ok(Store {
             database: Database::from_pool(pool),

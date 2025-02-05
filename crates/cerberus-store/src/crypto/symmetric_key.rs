@@ -43,13 +43,6 @@ impl SymmetricKey {
         EncryptedKey::new(self.id, encrypted_key)
     }
 
-    pub(crate) fn can_decrypt<T: Serialize + DeserializeOwned>(
-        &self,
-        data: &EncryptedData<T>,
-    ) -> bool {
-        self.id == data.key_id
-    }
-
     pub(crate) fn id(&self) -> Option<i64> {
         self.id
     }
@@ -78,10 +71,6 @@ impl Cipher for SymmetricKey {
         &self,
         data: &EncryptedData<T>,
     ) -> Result<T, Error> {
-        if !self.can_decrypt(data) {
-            return Err(Error::IncorrectKey);
-        }
-
         let cipher = XChaCha20Poly1305::new(self.key.as_slice().into());
         let decrypted_data = cipher.decrypt(&data.nonce.into(), data.enc_data.as_slice())?;
 

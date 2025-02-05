@@ -44,6 +44,7 @@ impl Cipher for VaultKey {
     }
 }
 
+#[derive(Debug)]
 pub struct Vault {
     id: i64,
     name: String,
@@ -105,8 +106,10 @@ impl Vault {
         Ok(item)
     }
 
-    pub async fn get_item(id: i64) -> Result<Item, Error> {
+    pub async fn get_item(&mut self, id: i64) -> Result<Item, Error> {
+        let item = self.database.find_item(id).await?;
 
+        Ok(item.into_item(self.vault_key.clone(), self.database.clone()))
     }
 
     pub async fn list_items(&mut self) -> Result<Vec<ItemPreview>, Error> {

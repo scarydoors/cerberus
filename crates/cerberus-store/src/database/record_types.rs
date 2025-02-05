@@ -79,7 +79,7 @@ impl EncryptedKeyRecord {
     pub(crate) fn into_encrypted_key(self) -> EncryptedKey {
         EncryptedKey::new(Some(self.id), self.key_encrypted_data.0)
     }
-&}
+}
 
 impl From<EncryptedKeyRecord> for EncryptedKey {
     fn from(record: EncryptedKeyRecord) -> Self {
