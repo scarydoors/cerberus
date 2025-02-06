@@ -1,5 +1,7 @@
 [workspace]
 members = [
+  "crates/cerberus-cli",
+  "crates/cerberus-daemon",
   "crates/cerberus-store",
   "crates/cerberus-tauri",
 ]
@@ -10,6 +12,7 @@ thiserror = "1.0"
 anyhow = "1.0"
 
 cerberus-store = { path = "crates/cerberus-store" }
+cerberus-daemon = { path = "crates/cerberus-daemon" }
 
 [profile.dev.package.sqlx-macros]
 opt-level = 3

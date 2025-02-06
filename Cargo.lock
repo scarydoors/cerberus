@@ -518,6 +518,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "cerberus-cli"
+version = "0.1.0"
+dependencies = [
+ "cerberus-daemon",
+]
+
+[[package]]
+name = "cerberus-daemon"
+version = "0.1.0"
+
+[[package]]
 name = "cerberus-store"
 version = "0.1.0"
 dependencies = [
