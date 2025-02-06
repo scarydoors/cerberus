@@ -13,4 +13,4 @@ serde_json = "1.0.134"
 sqlx = { version = "0.8.2", features = ["runtime-tokio", "sqlite", "derive", "macros", "migrate", "chrono", "json"] }
 
 thiserror.workspace = true
-tokio = { version = "1.42.0", features = ["rt", "macros"] }
+tokio.workspace = true

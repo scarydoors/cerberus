@@ -1,3 +1,5 @@
+use cerberus_daemon::get_socket_path;
+
 fn main() {
-    println!("Hello, world!");
+    get_socket_path();
 }

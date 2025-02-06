@@ -527,6 +527,11 @@ dependencies = [
 [[package]]
 name = "cerberus-daemon"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "thiserror",
+ "tokio",
+]
 
 [[package]]
 name = "cerberus-store"
