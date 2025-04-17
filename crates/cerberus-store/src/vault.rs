@@ -5,7 +5,7 @@ use rand::rngs::OsRng;
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{
-    crypto::{Cipher, EncryptedData, EncryptedKey, SecureKey, SymmetricKey}, database::{self, Database, Repository}, item::{Item, ItemData, ItemOverview, ItemPreview}, Error
+    crypto::{Cipher, EncryptedData, EncryptedKey, SecureKey, SymmetricKey}, database::{Database, Repository}, item::{Item, ItemData, ItemOverview, ItemPreview}, Error
 };
 
 #[derive(Debug, Clone)]

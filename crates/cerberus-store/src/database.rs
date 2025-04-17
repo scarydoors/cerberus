@@ -1,11 +1,9 @@
 use std::pin::Pin;
-use std::sync::Arc;
 use std::{future::Future, path::Path};
 
 use sqlx::Error as SqlxError;
 use sqlx::{sqlite::SqliteConnectOptions, types::Json, Executor, Sqlite, SqlitePool, Transaction};
 
-use crate::crypto::EncryptedDataKeyPair;
 use crate::item::{ItemData, ItemOverview};
 use crate::{
     crypto::EncryptedData,

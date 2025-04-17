@@ -1,8 +1,8 @@
 use chrono::{NaiveDateTime};
-use sqlx::{database, types::Json};
+use sqlx::types::Json;
 
 use crate::{
-    crypto::{Cipher, EncryptedData, EncryptedDataKeyPair, EncryptedKey}, item::{Item, ItemData, ItemOverview, ItemPreview}, store::Profile, vault::{self, Vault, VaultKey, VaultPreview}, Error
+    crypto::{Cipher, EncryptedData, EncryptedDataKeyPair, EncryptedKey}, item::{Item, ItemData, ItemOverview, ItemPreview}, store::Profile, vault::{Vault, VaultKey, VaultPreview}, Error
 };
 
 use super::Database;

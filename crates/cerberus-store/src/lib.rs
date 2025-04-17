@@ -1,4 +1,3 @@
-use std::path::Path;
 
 use argon2::{
     password_hash::{PasswordHasher, Salt, SaltString},
@@ -6,9 +5,7 @@ use argon2::{
 };
 use rand::rngs::OsRng;
 
-use chacha20poly1305::aead::KeyInit;
 
-use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
 
 pub mod item;
 pub mod store;
