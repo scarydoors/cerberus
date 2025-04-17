@@ -62,21 +62,6 @@ pub enum Error {
     IncorrectPassword,
 }
 
-pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
-
-pub async fn create_database(filename: impl AsRef<Path>) -> Result<(), Error> {
-    let options = SqliteConnectOptions::new()
-        .filename(filename)
-        .create_if_missing(true);
-
-    let pool = SqlitePool::connect_with(options).await?;
-
-    MIGRATOR
-        .run(&pool)
-        .await
-        .map_err(|err| sqlx::Error::from(err).into())
-}
-
 fn generate_salt() -> String {
     SaltString::generate(&mut OsRng).to_string()
 }
@@ -91,24 +76,3 @@ fn hash_password(password: &[u8], salt: &str) -> Vec<u8> {
 
     key.as_bytes().to_owned()
 }
-
-//pub async fn create_master_encryption_key(pool: &SqlitePool, password: &[u8]) -> Result<(), Error> {
-//    let cipher = XChaCha20Poly1305::new(key.as_bytes().into());
-//
-//    let nonce = XChaCha20Poly1305::generate_nonce(&mut OsRng);
-//    let master_key = XChaCha20Poly1305::generate_key(&mut OsRng);
-//
-//
-//    let master_key_enc = cipher.encrypt(&nonce, master_key.as_slice())?;
-//    let nonce_slice = nonce.as_slice();
-//
-//    sqlx::query!(
-//        "INSERT INTO keys (encrypted_key, nonce) VALUES (?, ?)",
-//        master_key_enc,
-//        nonce_slice
-//    )
-//        .fetch_all(pool)
-//        .await?;
-//
-//    Ok(())
-//}
