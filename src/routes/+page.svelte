@@ -23,13 +23,15 @@ const vaultItems = [
   { id: 19, name: "WeChat", site: "www.wechat.com" },
   { id: 20, name: "Signal", site: "www.signal.org" }
 ];
+
+let selectedVaultItemId: number | null = null;
 </script>
 
 <div class="flex h-screen text-neutral-100">
   <div class="w-64 bg-neutral-900 p-2 border-r border-r-neutral-700">
     <div class="overflow-y-auto space-y-1 h-full">
       {#each vaultItems as item}
-        <VaultItem preview={item} />
+        <VaultItem preview={item} onclick={() => selectedVaultItemId = item.id} isSelected={item.id === selectedVaultItemId}/>
       {/each}
     </div>
   </div>
