@@ -13,14 +13,15 @@ type Props = {
 };
 
 const { preview, isSelected = true, onclick }: Props = $props();
-
 </script>
+
 <button
   class={[
-        "py-1 px-4 rounded-md text-left block w-full",
-        isSelected ? "hover:bg-blue-800 bg-blue-900" : "hover:bg-neutral-800",
-        ]}
-  {onclick}>
+    'block w-full rounded-md px-4 py-1 text-left',
+    isSelected ? 'bg-blue-900 hover:bg-blue-800' : 'hover:bg-neutral-800'
+  ]}
+  {onclick}
+>
   <div class="font-bold">
     {preview.name}
   </div>
