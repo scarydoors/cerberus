@@ -24,7 +24,7 @@ const vaultItems = [
   { id: 20, name: 'Signal', site: 'www.signal.org' }
 ];
 
-let selectedVaultItemId: number | null = null;
+let selectedVaultItemId = $state<number | null>(null);
 </script>
 
 <div class="flex h-screen text-neutral-100">
@@ -40,8 +40,12 @@ let selectedVaultItemId: number | null = null;
     </div>
   </div>
   <div class="flex-1 bg-neutral-800">
-    <div class="h-full w-full px-8">
-      <div class="pt-8 text-3xl font-bold">Google</div>
+    <div class="h-full w-full px-8 space-y-4">
+      <div class="pt-8 text-2xl font-bold">Google</div>
+      <div class="w-full border rounded-lg border-neutral-500 py-2 px-4 bg-neutral-900">
+        <div class="text-xs">username</div>
+        <div class="text-sm">what</div>
+      </div>
     </div>
   </div>
 </div>

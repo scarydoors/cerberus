@@ -18,14 +18,14 @@ const { preview, isSelected = true, onclick }: Props = $props();
 <button
   class={[
     'block w-full rounded-md px-4 py-1 text-left',
-    isSelected ? 'bg-blue-900 hover:bg-blue-800' : 'hover:bg-neutral-800'
+    isSelected ? 'bg-blue-700 hover:bg-blue-800' : 'hover:bg-neutral-800'
   ]}
   {onclick}
 >
   <div class="font-bold">
     {preview.name}
   </div>
-  <div class="text-sm text-neutral-400">
+  <div class={["text-sm", isSelected || "text-neutral-400"]}>
     {preview.site}
   </div>
 </button>
