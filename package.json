@@ -19,7 +19,8 @@
     "@tauri-apps/plugin-dialog": "^2.2.1",
     "@tauri-apps/plugin-shell": "^2.2.1",
     "@zxcvbn-ts/core": "^3.0.4",
-    "@zxcvbn-ts/language-common": "^3.0.4"
+    "@zxcvbn-ts/language-common": "^3.0.4",
+    "bits-ui": "^1.4.6"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.8",

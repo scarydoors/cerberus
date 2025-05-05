@@ -8,5 +8,6 @@ mkShell {
     pkg-config
     gtk3
     webkitgtk_4_1
+    bun
   ];
 }
