@@ -28,24 +28,5 @@ let selectedVaultItemId = $state<number | null>(null);
 </script>
 
 <div class="flex h-screen text-neutral-100">
-  <div class="w-64 border-r border-r-neutral-700 bg-neutral-900 p-2">
-    <div class="h-full space-y-1 overflow-y-auto">
-      {#each vaultItems as item}
-        <VaultItem
-          preview={item}
-          onclick={() => (selectedVaultItemId = item.id)}
-          isSelected={item.id === selectedVaultItemId}
-        />
-      {/each}
-    </div>
-  </div>
-  <div class="flex-1 bg-neutral-800">
-    <div class="h-full w-full px-8 space-y-4">
-      <div class="pt-8 text-2xl font-bold">Google</div>
-      <div class="w-full border rounded-lg border-neutral-500 py-2 px-4 bg-neutral-900">
-        <div class="text-xs">username</div>
-        <div class="text-sm">what</div>
-      </div>
-    </div>
-  </div>
+
 </div>
