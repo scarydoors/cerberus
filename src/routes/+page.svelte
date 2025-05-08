@@ -5,6 +5,8 @@ import IconMagnifyingGlass from '~icons/ph/magnifying-glass-bold';
 import IconPlus from '~icons/ph/plus-bold';
 import IconArrowLeft from '~icons/ph/arrow-left-bold';
 import IconArrowRight from '~icons/ph/arrow-right-bold';
+import CaretLeft from '~icons/ph/caret-left-bold';
+import CaretRight from '~icons/ph/caret-right-bold';
 
 const vaultItems = [
   { id: 1, name: 'Google', site: 'www.google.com' },
@@ -34,21 +36,21 @@ let selectedVaultItemId = $state<number | null>(null);
 
 <header data-tauri-drag-region class="h-13 bg-neutral-800 flex items-center py-2.5 w-full justify-center gap-3">
   <div class="flex items-center h-full">
-    <Button.Root class="rounded-md text-neutral-300 cursor-pointer active:bg-primary-400/30 hover:bg-primary-500/30 size-8 flex items-center justify-center">
-      <IconArrowLeft class="size-5" />
+    <Button.Root class="rounded-md text-neutral-300 cursor-pointer active:bg-primary-400/30 hover:bg-primary-500/30 size-7 flex items-center justify-center">
+      <CaretLeft class="size-4" />
     </Button.Root>
-    <Button.Root class="rounded-md text-neutral-300 cursor-pointer active:bg-primary-400/30 hover:bg-primary-500/30 size-8 flex items-center justify-center">
-      <IconArrowRight class="size-5" />
+    <Button.Root class="rounded-md text-neutral-300 cursor-pointer active:bg-primary-400/30 hover:bg-primary-500/30 size-7 flex items-center justify-center">
+      <CaretRight class="size-4" />
     </Button.Root>
   </div>
   <div class="relative">
     <div class="absolute inset-y-0 flex items-center pointer-events-none pl-2 text-neutral-400">
       <IconMagnifyingGlass class="size-5" />
     </div>
-    <input placeholder="Search for items" class="pl-9 h-8 w-128 placeholder:text-neutral-400 rounded-lg bg-neutral-900 border border-neutral-700 text-sm focus:ring-3 focus:ring-primary-400" />
+    <input placeholder="Search for items" class="pl-9 h-7 w-128 placeholder:text-neutral-400 rounded-lg bg-neutral-900 border border-neutral-700 text-sm focus:ring-3 focus:ring-primary-500/30" />
   </div>
-  <Button.Root class="flex items-center bg-primary-500 gap-2 h-8 rounded-lg pl-2 pr-4 text-sm border border-primary-400">
-    <IconPlus class="size-5"/>
+  <Button.Root class="flex items-center bg-primary-500 gap-2 h-7 rounded-lg pl-2 pr-4 text-sm border border-primary-400">
+    <IconPlus class="size-4"/>
     New Item
   </Button.Root>
 </header>
