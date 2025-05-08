@@ -1,5 +1,10 @@
 <script lang="ts">
 import VaultItem from '$lib/components/VaultItem.svelte';
+import { Button } from 'bits-ui';
+import IconMagnifyingGlass from '~icons/ph/magnifying-glass-bold';
+import IconPlus from '~icons/ph/plus-bold';
+import IconArrowLeft from '~icons/ph/arrow-left-bold';
+import IconArrowRight from '~icons/ph/arrow-right-bold';
 
 const vaultItems = [
   { id: 1, name: 'Google', site: 'www.google.com' },
@@ -27,6 +32,29 @@ const vaultItems = [
 let selectedVaultItemId = $state<number | null>(null);
 </script>
 
-<div class="flex h-screen text-neutral-100">
-
+<header data-tauri-drag-region class="h-13 bg-neutral-800 flex items-center py-2.5 w-full justify-center gap-3">
+  <div class="flex items-center h-full">
+    <Button.Root class="rounded-md text-neutral-300 cursor-pointer active:bg-primary-400/30 hover:bg-primary-500/30 size-8 flex items-center justify-center">
+      <IconArrowLeft class="size-5" />
+    </Button.Root>
+    <Button.Root class="rounded-md text-neutral-300 cursor-pointer active:bg-primary-400/30 hover:bg-primary-500/30 size-8 flex items-center justify-center">
+      <IconArrowRight class="size-5" />
+    </Button.Root>
+  </div>
+  <div class="relative">
+    <div class="absolute inset-y-0 flex items-center pointer-events-none pl-2 text-neutral-400">
+      <IconMagnifyingGlass class="size-5" />
+    </div>
+    <input placeholder="Search for items" class="pl-9 h-8 w-128 placeholder:text-neutral-400 rounded-lg bg-neutral-900 border border-neutral-700 text-sm focus:ring-3 focus:ring-primary-400" />
+  </div>
+  <Button.Root class="flex items-center bg-primary-500 gap-2 h-8 rounded-lg pl-2 pr-4 text-sm border border-primary-400">
+    <IconPlus class="size-5"/>
+    New Item
+  </Button.Root>
+</header>
+<div class="flex h-full">
+  <div class="w-64 bg-neutral-800 h-full border-t border-r border-neutral-700">
+  </div>
+  <div class="w-64 bg-neutral-800 h-full border-t border-t-neutral-700">
+  </div>
 </div>
