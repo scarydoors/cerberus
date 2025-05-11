@@ -20,7 +20,8 @@
     "@tauri-apps/plugin-shell": "^2.2.1",
     "@zxcvbn-ts/core": "^3.0.4",
     "@zxcvbn-ts/language-common": "^3.0.4",
-    "bits-ui": "^1.4.6"
+    "bits-ui": "^1.4.6",
+    "paneforge": "^0.0.6"
   },
   "devDependencies": {
     "@iconify-json/ph": "^1.2.2",

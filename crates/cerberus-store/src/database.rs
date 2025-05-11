@@ -172,10 +172,9 @@ pub(crate) trait Repository {
                  data_keys.id as 'item_key_id',
                  data_keys.key_encrypted_data as 'data_key_encrypted_data: Json<EncryptedData<Vec<u8>>>'
              FROM items
-             INNER JOIN (SELECT id, key_encrypted_data  FROM keys) AS overview_keys ON overview_keys.id = items.overview_key_id
-             INNER JOIN (SELECT id, key_encrypted_data  FROM keys) AS data_keys ON data_keys.id = items.item_key_id
-             WHERE items.id = ?
-             GROUP BY items.id",
+             INNER JOIN keys AS overview_keys ON overview_keys.id = items.overview_key_id
+             INNER JOIN keys AS data_keys ON data_keys.id = items.item_key_id
+             WHERE items.id = ?",
             id
         )
             .fetch_one(self.get_executor())
@@ -185,15 +184,15 @@ pub(crate) trait Repository {
             item_record: ItemRecord {
                 id: record.id,
                 vault_id: record.vault_id,
-                overview_encrypted_data: record.overview_encrypted_data.clone(),
+                overview_encrypted_data: record.overview_encrypted_data,
                 overview_key_id: record.overview_key_id,
-                item_encrypted_data: record.item_encrypted_data.clone(),
+                item_encrypted_data: record.item_encrypted_data,
                 item_key_id: record.item_key_id,
                 created_at: record.created_at,
                 updated_at: record.updated_at
             },
-            overview_key: record.overview_key_encrypted_data.clone(),
-            data_key: record.data_key_encrypted_data.clone(),
+            overview_key: record.overview_key_encrypted_data,
+            data_key: record.data_key_encrypted_data,
         };
 
         Ok(item_record_with_keys)

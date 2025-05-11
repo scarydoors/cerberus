@@ -3,10 +3,13 @@ import VaultItem from '$lib/components/VaultItem.svelte';
 import { Button } from 'bits-ui';
 import IconMagnifyingGlass from '~icons/ph/magnifying-glass-bold';
 import IconPlus from '~icons/ph/plus-bold';
-import IconArrowLeft from '~icons/ph/arrow-left-bold';
-import IconArrowRight from '~icons/ph/arrow-right-bold';
-import CaretLeft from '~icons/ph/caret-left-bold';
-import CaretRight from '~icons/ph/caret-right-bold';
+import IconCaretLeft from '~icons/ph/caret-left-bold';
+import IconCaretRight from '~icons/ph/caret-right-bold';
+import IconCardsThree from '~icons/ph/cards-three-fill';
+import IconCaretDown from '~icons/ph/caret-down-bold';
+import IconVault from '~icons/ph/vault-fill';
+import IconDotsThree from '~icons/ph/dots-three-outline-fill';
+import IconNotePencil from '~icons/ph/note-pencil-fill';
 
 const vaultItems = [
   { id: 1, name: 'Google', site: 'www.google.com' },
@@ -36,11 +39,11 @@ let selectedVaultItemId = $state<number | null>(null);
 
 <header data-tauri-drag-region class="h-13 bg-neutral-800 flex items-center py-2.5 w-full justify-center gap-3">
   <div class="flex items-center h-full">
-    <Button.Root class="rounded-md text-neutral-300 cursor-pointer active:bg-primary-400/30 hover:bg-primary-500/30 size-8 flex items-center justify-center">
-      <CaretLeft class="size-4" />
+    <Button.Root class="rounded-lg text-neutral-300 cursor-pointer active:bg-primary-400/30 hover:bg-primary-500/30 size-8 flex items-center justify-center">
+      <IconCaretLeft class="size-4" />
     </Button.Root>
-    <Button.Root class="rounded-md text-neutral-300 cursor-pointer active:bg-primary-400/30 hover:bg-primary-500/30 size-8 flex items-center justify-center">
-      <CaretRight class="size-4" />
+    <Button.Root class="rounded-lg text-neutral-300 cursor-pointer active:bg-primary-400/30 hover:bg-primary-500/30 size-8 flex items-center justify-center">
+      <IconCaretRight class="size-4" />
     </Button.Root>
   </div>
   <div class="relative">
@@ -56,7 +59,81 @@ let selectedVaultItemId = $state<number | null>(null);
 </header>
 <div class="flex h-full">
   <div class="w-64 bg-neutral-800 h-full border-t border-r border-neutral-700">
+    <div class="p-2">
+      <Button.Root class="p-2 flex items-center gap-2.5 text-sm font-medium rounded-lg hover:bg-primary-500/30 w-full mb-3">
+        <IconCardsThree class="size-5 text-neutral-300"/>
+        All Items
+      </Button.Root>
+      <div class="flex items-center gap-1">
+      <Button.Root class="p-2 flex items-center gap-2.5 text-sm font-medium rounded-lg hover:bg-primary-500/30 flex-1">
+        <IconCaretDown class="size-5 text-neutral-300"/>
+        Vaults
+      </Button.Root>
+      <Button.Root class="rounded-lg text-neutral-300 cursor-pointer active:bg-primary-400/30 hover:bg-primary-500/30 size-7 flex items-center justify-center">
+        <IconPlus class="size-4" />
+      </Button.Root>
+      </div>
+      <Button.Root class="p-2 flex items-center gap-2.5 text-sm font-medium rounded-lg hover:bg-primary-500/30 w-full">
+        <IconVault class="size-5 text-neutral-300"/>
+        My Stuff
+      </Button.Root>
+    </div>
   </div>
   <div class="w-64 bg-neutral-800 h-full border-t border-t-neutral-700">
+    <div class="p-2">
+      <div class="flex items-center px-2 h-13 gap-4 hover:bg-primary-500/30 rounded-lg">
+        <div class="rounded-lg bg-neutral-300 size-8">
+        </div>
+        <div>
+          <h1 class="text-neutral-50 font-semibold">Google</h1>
+          <p class="text-neutral-300 text-xs">john.doe@gmail.com</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="flex-1 pt-12">
+    <div class="mx-auto max-w-5xl px-4">
+      <div class="flex items-center justify-between px-4 mb-6">
+        <div class="flex items-center gap-4 text-2xl font-bold">
+          <div class="rounded-lg bg-neutral-300 size-12">
+          </div>
+          Google
+        </div>
+        <div class="flex items-center gap-1">
+          <Button.Root class="rounded-lg text-neutral-300 cursor-pointer active:bg-primary-400/30 hover:bg-primary-500/30 flex items-center text-sm px-2 h-8 gap-2">
+            <IconVault class="size-5" />
+            My Stuff
+          </Button.Root>
+          <Button.Root class="rounded-lg text-neutral-300 cursor-pointer active:bg-primary-400/30 hover:bg-primary-500/30 size-8 flex items-center justify-center">
+            <IconNotePencil class="size-5" />
+          </Button.Root>
+          <Button.Root class="rounded-lg text-neutral-300 cursor-pointer active:bg-primary-400/30 hover:bg-primary-500/30 size-8 flex items-center justify-center">
+            <IconDotsThree class="size-5" />
+          </Button.Root>
+        </div>
+      </div>
+      <div class="mb-5">
+        <div class="bg-neutral-800 border-neutral-700 w-full rounded-t-2xl p-4 flex flex-col gap-2.5 border-x border-t">
+          <div class="text-xs font-light text-neutral-300">
+            Username
+          </div>
+          <div class="text-neutral-50 text-sm">
+            john.doe@gmail.com
+          </div>
+        </div>
+        <div class="bg-neutral-800 border-neutral-700 w-full rounded-b-2xl p-4 flex flex-col gap-2.5 border shadow-md">
+          <div class="text-xs font-light text-neutral-300">
+            Password
+          </div>
+          <div class="text-neutral-50 text-sm">
+            ********
+          </div>
+        </div>
+      </div>
+      <div class="flex flex-col w-full items-center text-neutral-400 text-xs font-light gap-1">
+        <div>Updated at 2025-01-01 12:00:00</div>
+        <div>Created at 2025-01-01 12:00:00</div>
+      </div>
+    </div>
   </div>
 </div>
