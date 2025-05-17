@@ -411,6 +411,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "cerberus-crypto"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "argon2",
+ "chacha20poly1305",
+ "chrono",
+ "rand 0.8.5",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "zeroize",
+]
+
+[[package]]
 name = "cerberus-daemon"
 version = "0.1.0"
 dependencies = [
@@ -5874,6 +5889,20 @@ name = "zeroize"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ced3678a2879b30306d323f4542626697a464a97c0a07c9aebf7ebca65cd4dde"
+dependencies = [
+ "zeroize_derive",
+]
+
+[[package]]
+name = "zeroize_derive"
+version = "1.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce36e65b0d2999d2aafac989fb249189a141aee1f53c612c1f37d72631959f69"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.101",
+]
 
 [[package]]
 name = "zerovec"
