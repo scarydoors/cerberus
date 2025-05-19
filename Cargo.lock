@@ -416,12 +416,16 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "argon2",
+ "base64 0.22.1",
  "chacha20poly1305",
  "chrono",
+ "hex",
  "rand 0.8.5",
  "serde",
  "serde_json",
+ "sha2",
  "thiserror 1.0.69",
+ "uuid",
  "zeroize",
 ]
 
@@ -1606,6 +1610,9 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "hkdf"

@@ -6,9 +6,11 @@ use argon2::{
 };
 use chacha20poly1305::{aead::Aead, AeadCore, KeyInit, XChaCha20Poly1305};
 use rand::{rngs::OsRng, CryptoRng, RngCore};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 pub mod secret;
+mod base64;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -23,48 +25,66 @@ pub enum Error {
 }
 
 pub trait Cipher {
-    fn encrypt<T: Serialize + DeserializeOwned>(&self, data: &T) -> Result<EncryptedData<T>>;
-    fn decrypt<T: Serialize + DeserializeOwned>(&self, data: &EncryptedData<T>) -> Result<T>;
+    fn encrypt<T: Serialize>(&self, data: &T) -> Result<EncryptedData<T>>;
+    fn decrypt<T: for<'de> Deserialize<'de>>(&self, data: &EncryptedData<T>) -> Result<T>;
 }
 
-type Nonce = [u8; 24];
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
+struct Nonce(#[serde(with="base64")] [u8; 24]);
 
 type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct EncryptedData<T: Serialize + DeserializeOwned> {
-    data: Vec<u8>,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EncryptedData<T> {
+    #[serde(with="base64")]
+    encrypted_data: Vec<u8>,
+    key_id: KeyIdentifier,
     nonce: Nonce,
+    #[serde(skip)]
     _phantom: PhantomData<T>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum KeyIdentifier {
+    Local,
+    Uuid(Uuid),
+    Derived(String),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SymmetricKey {
+    #[serde(with="base64")]
     key: Vec<u8>,
+    id: KeyIdentifier,
 }
 
 impl SymmetricKey {
-    pub fn new(key: &[u8]) -> Self {
+    pub fn new(key: &[u8], id: KeyIdentifier) -> Self {
         Self {
             key: key.to_vec(),
+            id
         }
     }
 
-    pub fn generate(rng: impl CryptoRng + RngCore) -> Self {
+    pub fn generate(rng: impl CryptoRng + RngCore, id: KeyIdentifier) -> Self {
         let key = XChaCha20Poly1305::generate_key(rng);
         Self {
             key: key.to_vec(),
+            id
         }
     }
 
-    pub fn from_password(password: &[u8], salt: &str) -> Self {
+    pub fn from_password(password: &[u8], salt: &str, id: KeyIdentifier) -> Self {
         Self {
-            key: hash_password(password, salt)
+            key: hash_password(password, salt),
+            id
         }
     }
 }
 
 impl Cipher for SymmetricKey {
-    fn encrypt<T: Serialize + DeserializeOwned>(
+    fn encrypt<T: Serialize>(
         &self,
         data: &T,
     ) -> Result<EncryptedData<T>> {
@@ -72,26 +92,55 @@ impl Cipher for SymmetricKey {
 
         let cipher = XChaCha20Poly1305::new(self.key.as_slice().into());
         let nonce = XChaCha20Poly1305::generate_nonce(&mut OsRng);
-        let encrypted_data = cipher.encrypt(&nonce.into(), data.as_bytes())?;
+        let encrypted_data = cipher.encrypt(&nonce, data.as_bytes())?;
 
         Ok(EncryptedData {
-            data: encrypted_data,
-            nonce: nonce.into(),
+            encrypted_data,
+            key_id: self.id.clone(),
+            nonce: Nonce(nonce.into()),
             _phantom: PhantomData,
         })
     }
 
-    fn decrypt<T: Serialize + DeserializeOwned>(
+    fn decrypt<T: for<'de> Deserialize<'de>>(
         &self,
         encrypted_data: &EncryptedData<T>,
     ) -> Result<T> {
         let cipher = XChaCha20Poly1305::new(self.key.as_slice().into());
-        let decrypted_data = cipher.decrypt(&encrypted_data.nonce.into(), encrypted_data.data.as_slice())?;
+        let decrypted_data = cipher.decrypt(&encrypted_data.nonce.0.into(), encrypted_data.encrypted_data.as_slice())?;
 
         let data = serde_json::from_slice(&decrypted_data)?;
         Ok(data)
     }
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Envelope<T> {
+    data: EncryptedData<T>,
+    dek: EncryptedData<SymmetricKey>
+}
+
+impl<T> Envelope<T>
+where T: Serialize + for<'de> Deserialize<'de> {
+    pub fn seal(kek: &SymmetricKey, data: &T) -> Result<Self> {
+        let dek = SymmetricKey::generate(&mut OsRng, KeyIdentifier::Local);
+        let data = dek.encrypt(data)?;
+        let dek_encrypted = kek.encrypt(&dek)?;
+
+        Ok(Self {
+            data,
+            dek: dek_encrypted
+        })
+    }
+
+    pub fn open(&self, kek: &SymmetricKey) -> Result<T> {
+        let dek: SymmetricKey = kek.decrypt(&self.dek)?;
+        let data = dek.decrypt(&self.data)?;
+
+        Ok(data)
+    }
+}
+
 
 pub fn generate_salt() -> String {
     SaltString::generate(&mut OsRng).to_string()
@@ -112,7 +161,18 @@ pub fn hash_password(password: &[u8], salt: &str) -> Vec<u8> {
 mod tests {
     use super::*;
 
+    #[derive(Serialize, Deserialize)]
+    struct SecretOwned {
+        data: String
+    }
+
     #[test]
     fn it_works() {
+        let master_key = SymmetricKey::from_password(b"masterpassword", &generate_salt(), KeyIdentifier::Derived("master_key".into()));
+
+        let envelope = Envelope::seal(&master_key, &SecretOwned { data: String::from("what") }).unwrap();
+        panic!("{}", serde_json::to_string_pretty(&envelope).unwrap());
+
+        let decrypted = envelope.open(&master_key).unwrap();
     }
 }
