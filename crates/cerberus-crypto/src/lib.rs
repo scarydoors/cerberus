@@ -6,7 +6,7 @@ use argon2::{
 };
 use chacha20poly1305::{aead::Aead, AeadCore, KeyInit, XChaCha20Poly1305};
 use rand::{rngs::OsRng, CryptoRng, RngCore};
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use uuid::Uuid;
 
 pub mod secret;
@@ -26,12 +26,15 @@ pub enum Error {
 
 pub trait Cipher {
     fn encrypt<T: Serialize>(&self, data: &T) -> Result<EncryptedData<T>>;
-    fn decrypt<T: for<'de> Deserialize<'de>>(&self, data: &EncryptedData<T>) -> Result<T>;
+    fn decrypt<T: DeserializeOwned>(&self, data: &EncryptedData<T>) -> Result<T>;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(transparent)]
-struct Nonce(#[serde(with="base64")] [u8; 24]);
+struct Nonce(
+    #[serde(with="base64")]
+    [u8; 24]
+);
 
 type Result<T> = std::result::Result<T, Error>;
 
@@ -46,6 +49,8 @@ pub struct EncryptedData<T> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "type", content = "value")]
+#[serde(rename_all = "snake_case")]
 pub enum KeyIdentifier {
     Local,
     Uuid(Uuid),
@@ -102,7 +107,7 @@ impl Cipher for SymmetricKey {
         })
     }
 
-    fn decrypt<T: for<'de> Deserialize<'de>>(
+    fn decrypt<T: DeserializeOwned>(
         &self,
         encrypted_data: &EncryptedData<T>,
     ) -> Result<T> {
@@ -121,8 +126,8 @@ pub struct Envelope<T> {
 }
 
 impl<T> Envelope<T>
-where T: Serialize + for<'de> Deserialize<'de> {
-    pub fn seal(kek: &SymmetricKey, data: &T) -> Result<Self> {
+where T: Serialize + DeserializeOwned {
+    pub fn seal(kek: &impl Cipher, data: &T) -> Result<Self> {
         let dek = SymmetricKey::generate(&mut OsRng, KeyIdentifier::Local);
         let data = dek.encrypt(data)?;
         let dek_encrypted = kek.encrypt(&dek)?;
@@ -133,7 +138,7 @@ where T: Serialize + for<'de> Deserialize<'de> {
         })
     }
 
-    pub fn open(&self, kek: &SymmetricKey) -> Result<T> {
+    pub fn open(&self, kek: &impl Cipher) -> Result<T> {
         let dek: SymmetricKey = kek.decrypt(&self.dek)?;
         let data = dek.decrypt(&self.data)?;
 
@@ -168,10 +173,9 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let master_key = SymmetricKey::from_password(b"masterpassword", &generate_salt(), KeyIdentifier::Derived("master_key".into()));
+        let master_key = SymmetricKey::from_password(b"masterpassword", &generate_salt(), KeyIdentifier::Uuid(Uuid::new_v4()));
 
         let envelope = Envelope::seal(&master_key, &SecretOwned { data: String::from("what") }).unwrap();
-        panic!("{}", serde_json::to_string_pretty(&envelope).unwrap());
 
         let decrypted = envelope.open(&master_key).unwrap();
     }
