@@ -16,5 +16,7 @@ thiserror.workspace = true
 anyhow.workspace = true
 uuid = { version = "1.16.0", features = ["v4", "serde"] }
 sha2 = "0.10.9"
+hmac = "0.12.1"
+hkdf = "0.12.4"
 hex = { version = "0.4.3", features = ["serde"] }
 base64 = "0.22.1"
