@@ -444,6 +444,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "cerberus-macros"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn 2.0.101",
+]
+
+[[package]]
 name = "cerberus-store"
 version = "0.1.0"
 dependencies = [

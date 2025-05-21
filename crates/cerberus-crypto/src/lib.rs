@@ -5,11 +5,14 @@ use argon2::{
     Argon2,
 };
 use chacha20poly1305::{aead::Aead, AeadCore, KeyInit, XChaCha20Poly1305};
+use mac::HmacSha256;
 use rand::{rngs::OsRng, CryptoRng, RngCore};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use sha2::Sha256;
 use uuid::Uuid;
 
 pub mod secret;
+pub mod mac;
 mod base64;
 
 #[derive(thiserror::Error, Debug)]
@@ -22,6 +25,9 @@ pub enum Error {
 
     #[error("hashing failed: {0}")]
     Hashing(#[from] argon2::password_hash::Error),
+
+    #[error("hmac error: {0}")]
+    Hmac(#[from] hmac::digest::MacError),
 }
 
 pub trait Cipher {
@@ -65,9 +71,9 @@ pub struct SymmetricKey {
 }
 
 impl SymmetricKey {
-    pub fn new(key: &[u8], id: KeyIdentifier) -> Self {
+    pub fn new(key: Vec<u8>, id: KeyIdentifier) -> Self {
         Self {
-            key: key.to_vec(),
+            key,
             id
         }
     }
