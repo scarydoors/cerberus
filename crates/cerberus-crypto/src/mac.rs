@@ -6,19 +6,17 @@ use crate::Result;
 
 pub(crate) type HmacSha256 = Hmac<Sha256>;
 
-pub trait UpdateHmac {
+pub trait VerifyHmac<M: Mac + KeyInit = HmacSha256> {
     fn update_hmac(&self, hmac: &mut impl Mac);
-}
 
-pub trait VerifyHmac<M: Mac + KeyInit = HmacSha256>: UpdateHmac {
     fn compute_tag<K: AsRef<[u8]>>(&self, key: K) -> CtOutput<M> {
-        let mut mac = <M as KeyInit>::new_from_slice(key.as_ref()).expect("hmac key can be any size");
+        let mut mac = <M as KeyInit>::new_from_slice(key.as_ref()).expect("HMAC should accept keys of any size");
         self.update_hmac(&mut mac);
         mac.finalize()
     }
 
     fn verify_tag<K: AsRef<[u8]>>(&self, key: K, tag: &[u8]) -> Result<()> {
-        let mut mac = <M as KeyInit>::new_from_slice(key.as_ref()).expect("hmac key can be any size");
+        let mut mac = <M as KeyInit>::new_from_slice(key.as_ref()).expect("HMAC should accept keys of any size");
         self.update_hmac(&mut mac);
         Ok(mac.verify(tag.into())?)
     }

@@ -447,7 +447,10 @@ dependencies = [
 name = "cerberus-macros"
 version = "0.1.0"
 dependencies = [
+ "cerberus-crypto",
+ "hmac",
  "quote",
+ "serde_json",
  "syn 2.0.101",
 ]
 
