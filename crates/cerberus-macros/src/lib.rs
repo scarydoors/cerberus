@@ -1,8 +1,7 @@
-use std::{error::Error, rc::Rc};
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, DeriveInput, Field, Meta};
+use syn::{parse_macro_input, DeriveInput, Field};
 
 #[proc_macro_derive(VerifyHmac, attributes(hmac))]
 pub fn derive_verify_hmac(input: TokenStream) -> TokenStream {

@@ -5,10 +5,8 @@ use argon2::{
     Argon2,
 };
 use chacha20poly1305::{aead::Aead, AeadCore, KeyInit, XChaCha20Poly1305};
-use mac::HmacSha256;
 use rand::{rngs::OsRng, CryptoRng, RngCore};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use sha2::Sha256;
 use uuid::Uuid;
 use cerberus_secret::{SecretSlice, ExposeSecret};
 use cerberus_serde::{base64, base64_expose_secret};
