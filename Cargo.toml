@@ -20,6 +20,7 @@ serde_json = "1.0"
 cerberus-store = { path = "crates/cerberus-store" }
 cerberus-daemon = { path = "crates/cerberus-daemon" }
 cerberus-crypto = { path = "crates/cerberus-crypto" }
+cerberus-macros = { path = "crates/cerberus-macros" }
 
 [profile.dev.package.sqlx-macros]
 opt-level = 3

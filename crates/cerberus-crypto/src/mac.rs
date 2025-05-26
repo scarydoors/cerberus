@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use crate::Result;
 
+pub use cerberus_macros::VerifyHmac;
+
 pub(crate) type HmacSha256 = Hmac<Sha256>;
 
 pub trait VerifyHmac<M: Mac + KeyInit = HmacSha256> {

@@ -1,8 +1,8 @@
 use cerberus_crypto::mac::VerifyHmac;
-use cerberus_macros::VerifyHmac;
+use cerberus_macros::VerifyHmac as VerifyHmacDerive;
 
 #[allow(dead_code)]
-#[derive(VerifyHmac)]
+#[derive(VerifyHmacDerive)]
 struct CoolStruct {
     #[hmac(skip)]
     x: i32,
