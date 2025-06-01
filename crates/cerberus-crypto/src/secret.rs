@@ -13,6 +13,12 @@ impl<T: Zeroize + ?Sized> SecretBox<T> {
     }
 }
 
+impl<T: Zeroize + ?Sized> std::fmt::Debug for SecretBox<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SecretBox").field("inner_secret", &"REDACTED").finish()
+    }
+}
+
 pub trait ExposeSecret<T: Zeroize + ?Sized> {
     fn expose_secret(&self) -> &T;
 }
