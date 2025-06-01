@@ -26,7 +26,6 @@ pub trait VerifyHmac<M: Mac + KeyInit = HmacSha256> {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HmacKey {
-    #[serde(deserialize_with="crate::base64::deserialize", serialize_with="crate::base64::serialize_expose_secret")]
     key: SecretSlice<u8>
 }
 
@@ -35,22 +34,6 @@ impl HmacKey {
         Self {
             key: key.into()
         }
-    }
-
-    pub fn compute_tag<T, M>(&self, data: T) -> CtOutput<M>
-    where
-        T: VerifyHmac<M>,
-        M: Mac + KeyInit
-    {
-        data.compute_tag(&self)
-    }
-
-    pub fn verify_tag<T, M>(&self, data: T, tag: &[u8]) -> Result<()>
-    where
-        T: VerifyHmac<M>,
-        M: Mac + KeyInit
-    {
-        data.verify_tag(&self, tag)
     }
 }
 
