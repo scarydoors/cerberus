@@ -2,13 +2,19 @@ use std::marker::PhantomData;
 
 use serde::{de::{Deserializer, Visitor}, Serialize, Deserialize, Serializer};
 use base64::{engine, Engine};
+use zeroize::Zeroize;
+
+use crate::secret::{ExposeSecret, SecretBox};
 
 const ENGINE: engine::GeneralPurpose = base64::engine::general_purpose::STANDARD_NO_PAD;
 
 pub fn serialize<T: AsRef<[u8]>, S: Serializer>(source: &T, serializer: S) -> Result<S::Ok, S::Error> {
-
     ENGINE.encode(source)
         .serialize(serializer)
+}
+
+pub fn serialize_expose_secret<T: Zeroize + ?Sized + AsRef<[u8]>, S: Serializer>(source: &SecretBox<T>, serializer: S)  -> Result<S::Ok, S::Error> {
+    serialize(&source.expose_secret(), serializer)
 }
 
 pub fn deserialize<'de, S: TryFrom<Vec<u8>>, D: Deserializer<'de>>(deserializer: D) -> Result<S, D::Error> {

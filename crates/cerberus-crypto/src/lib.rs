@@ -10,6 +10,8 @@ use rand::{rngs::OsRng, CryptoRng, RngCore};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::Sha256;
 use uuid::Uuid;
+use secret::{SecretSlice, ExposeSecret};
+use zeroize::Zeroize;
 
 pub mod secret;
 pub mod mac;
@@ -65,15 +67,15 @@ pub enum KeyIdentifier {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SymmetricKey {
-    #[serde(with="base64")]
-    key: Vec<u8>,
+    #[serde(deserialize_with="base64::deserialize", serialize_with="base64::serialize_expose_secret")]
+    key: SecretSlice<u8>,
     id: KeyIdentifier,
 }
 
 impl SymmetricKey {
     pub fn new(key: Vec<u8>, id: KeyIdentifier) -> Self {
         Self {
-            key,
+            key: SecretSlice::from(key),
             id
         }
     }
@@ -81,14 +83,7 @@ impl SymmetricKey {
     pub fn generate(rng: impl CryptoRng + RngCore, id: KeyIdentifier) -> Self {
         let key = XChaCha20Poly1305::generate_key(rng);
         Self {
-            key: key.to_vec(),
-            id
-        }
-    }
-
-    pub fn from_password(password: &[u8], salt: &str, id: KeyIdentifier) -> Self {
-        Self {
-            key: hash_password(password, salt),
+            key: key.to_vec().into(),
             id
         }
     }
@@ -101,7 +96,7 @@ impl Cipher for SymmetricKey {
     ) -> Result<EncryptedData<T>> {
         let data = serde_json::to_string(&data)?;
 
-        let cipher = XChaCha20Poly1305::new(self.key.as_slice().into());
+        let cipher = XChaCha20Poly1305::new(self.key.expose_secret().into());
         let nonce = XChaCha20Poly1305::generate_nonce(&mut OsRng);
         let encrypted_data = cipher.encrypt(&nonce, data.as_bytes())?;
 
@@ -117,7 +112,7 @@ impl Cipher for SymmetricKey {
         &self,
         encrypted_data: &EncryptedData<T>,
     ) -> Result<T> {
-        let cipher = XChaCha20Poly1305::new(self.key.as_slice().into());
+        let cipher = XChaCha20Poly1305::new(self.key.expose_secret().into());
         let decrypted_data = cipher.decrypt(&encrypted_data.nonce.0.into(), encrypted_data.encrypted_data.as_slice())?;
 
         let data = serde_json::from_slice(&decrypted_data)?;
@@ -157,7 +152,7 @@ pub fn generate_salt() -> String {
     SaltString::generate(&mut OsRng).to_string()
 }
 
-pub fn hash_password(password: &[u8], salt: &str) -> Vec<u8> {
+pub fn hash_password(password: &[u8], salt: &str) -> SecretSlice<u8> {
     let salt = Salt::from_b64(salt).expect("salt is the correct format");
     let password_hash_data = Argon2::default().hash_password(password, salt).unwrap();
 
@@ -165,7 +160,7 @@ pub fn hash_password(password: &[u8], salt: &str) -> Vec<u8> {
         .hash
         .expect("hash_password was successful");
 
-    key.as_bytes().to_owned()
+    key.as_bytes().to_owned().into()
 }
 
 #[cfg(test)]
