@@ -2,7 +2,7 @@ use chacha20poly1305::KeyInit;
 use hmac::{digest::CtOutput, Hmac, Mac};
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
-use crate::Result;
+use crate::{secret::{ExposeSecret, SecretSlice}, Result};
 
 pub use cerberus_macros::VerifyHmac;
 
@@ -26,14 +26,14 @@ pub trait VerifyHmac<M: Mac + KeyInit = HmacSha256> {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HmacKey {
-    #[serde(with="crate::base64")]
-    key: Vec<u8>
+    #[serde(deserialize_with="crate::base64::deserialize", serialize_with="crate::base64::serialize_expose_secret")]
+    key: SecretSlice<u8>
 }
 
 impl HmacKey {
     pub fn new(key: Vec<u8>) -> Self {
         Self {
-            key
+            key: key.into()
         }
     }
 
@@ -56,6 +56,6 @@ impl HmacKey {
 
 impl AsRef<[u8]> for HmacKey {
     fn as_ref(&self) -> &[u8] {
-        self.key.as_ref()
+        self.key.expose_secret()
     }
 }

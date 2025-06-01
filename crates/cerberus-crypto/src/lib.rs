@@ -75,7 +75,7 @@ pub struct SymmetricKey {
 impl SymmetricKey {
     pub fn new(key: Vec<u8>, id: KeyIdentifier) -> Self {
         Self {
-            key: SecretSlice::from(key),
+            key: key.into(),
             id
         }
     }
@@ -174,7 +174,7 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let master_key = SymmetricKey::from_password(b"masterpassword", &generate_salt(), KeyIdentifier::Uuid(Uuid::new_v4()));
+        let master_key = SymmetricKey::generate(&mut OsRng, KeyIdentifier::Derived("coolkey".into()));
 
         let envelope = Envelope::seal(&master_key, &SecretOwned { data: String::from("what") }).unwrap();
 
