@@ -2,7 +2,8 @@ use chacha20poly1305::KeyInit;
 use hmac::{digest::CtOutput, Hmac, Mac};
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
-use crate::{secret::{ExposeSecret, SecretSlice}, Result};
+use cerberus_secret::{ExposeSecret, SecretSlice};
+use crate::Result;
 
 pub use cerberus_macros::VerifyHmac;
 

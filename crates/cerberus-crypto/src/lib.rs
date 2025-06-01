@@ -10,12 +10,10 @@ use rand::{rngs::OsRng, CryptoRng, RngCore};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::Sha256;
 use uuid::Uuid;
-use secret::{SecretSlice, ExposeSecret};
-use zeroize::Zeroize;
+use cerberus_secret::{SecretSlice, ExposeSecret};
+use cerberus_serde::{base64, base64_expose_secret};
 
-pub mod secret;
 pub mod mac;
-mod base64;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -67,7 +65,7 @@ pub enum KeyIdentifier {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SymmetricKey {
-    #[serde(deserialize_with="base64::deserialize", serialize_with="base64::serialize_expose_secret")]
+    #[serde(with = "base64_expose_secret")]
     key: SecretSlice<u8>,
     id: KeyIdentifier,
 }
