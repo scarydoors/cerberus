@@ -36,9 +36,3 @@ impl HmacKey {
         }
     }
 }
-
-impl AsRef<[u8]> for HmacKey {
-    fn as_ref(&self) -> &[u8] {
-        self.key.expose_secret()
-    }
-}
