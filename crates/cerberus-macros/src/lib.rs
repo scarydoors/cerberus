@@ -1,19 +1,18 @@
-
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput, Field};
 
-#[proc_macro_derive(VerifyHmac, attributes(hmac))]
-pub fn derive_verify_hmac(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(UpdateHmac, attributes(hmac))]
+pub fn derive_update_hmac(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
-    match impl_verify_hmac(&input) {
+    match impl_update_hmac(&input) {
         Ok(tokens) => tokens,
         Err(e) => e.into_compile_error().into()
     }
 }
 
-fn impl_verify_hmac(input: &DeriveInput) -> Result<TokenStream, syn::Error> {
+fn impl_update_hmac(input: &DeriveInput) -> Result<TokenStream, syn::Error> {
     let (impl_generics, type_generics, where_clause) = input.generics.split_for_impl();
 
     match &input.data {
@@ -33,7 +32,7 @@ fn impl_verify_hmac(input: &DeriveInput) -> Result<TokenStream, syn::Error> {
             });
 
             let expanded = quote! {
-                impl #impl_generics VerifyHmac for #name #type_generics #where_clause
+                impl #impl_generics UpdateHmac for #name #type_generics #where_clause
                 {
                     fn update_hmac(&self, hmac: &mut impl ::hmac::Mac) {
                         #(hmac.update(&::serde_json::to_vec(&#input_fields).expect("data should be serializable"));)*
@@ -43,7 +42,7 @@ fn impl_verify_hmac(input: &DeriveInput) -> Result<TokenStream, syn::Error> {
 
             Ok(expanded.into())
         },
-        _ => Err(syn::Error::new_spanned(input, "#[derive(VerifyHmac)] can only be used with structs"))
+        _ => Err(syn::Error::new_spanned(input, "#[derive(UpdateHmac)] can only be used with structs"))
     }
 }
 
