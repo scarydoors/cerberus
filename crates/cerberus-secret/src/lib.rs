@@ -20,7 +20,7 @@ impl<T: Zeroize + ?Sized> SecretBox<T> {
     }
 }
 
-impl<T: Zeroize + ?Sized + Clone> Clone for SecretBox<T> {
+impl<T: Zeroize + Clone> Clone for SecretBox<T> {
     fn clone(&self) -> Self {
         Self { inner_secret: self.inner_secret.clone() }
     }
