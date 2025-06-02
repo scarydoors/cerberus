@@ -12,6 +12,7 @@ use cerberus_secret::{SecretSlice, ExposeSecret};
 use cerberus_serde::{base64, base64_expose_secret};
 
 pub mod mac;
+pub mod kdf;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -26,6 +27,9 @@ pub enum Error {
 
     #[error("hmac error: {0}")]
     Hmac(#[from] hmac::digest::MacError),
+
+    #[error("derived keys must not be serialized")]
+    DerivedKeySerialization,
 }
 
 pub trait Cipher {
@@ -58,7 +62,12 @@ pub struct EncryptedData<T> {
 pub enum KeyIdentifier {
     Local,
     Uuid(Uuid),
+    #[serde(serialize_with = "forbid_derived_serialization")]
     Derived(String),
+}
+
+fn forbid_derived_serialization<S: serde::Serializer>(_: &String, _serializer: S) -> std::result::Result<S::Ok, S::Error> {
+    Err(serde::ser::Error::custom(Error::DerivedKeySerialization))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
