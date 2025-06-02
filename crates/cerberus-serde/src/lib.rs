@@ -1,6 +1,6 @@
 pub mod base64 {
     use std::marker::PhantomData;
-    use serde::{de::{Deserializer, Visitor}, Serialize, Deserialize, Serializer};
+    use serde::{de::{Deserializer, Visitor}, Serialize, Serializer};
     use base64::{engine, Engine};
 
     const ENGINE: engine::GeneralPurpose = ::base64::engine::general_purpose::STANDARD_NO_PAD;
@@ -38,7 +38,7 @@ pub mod base64 {
 
 pub mod base64_expose_secret {
     use cerberus_secret::{SecretBox, ExposeSecret};
-    use serde::{de::{Deserializer, Visitor}, Serialize, Deserialize, Serializer};
+    use serde::Serializer;
     use zeroize::Zeroize;
 
     pub use super::base64::deserialize;
@@ -51,7 +51,7 @@ pub mod base64_expose_secret {
 #[cfg(test)]
 mod tests {
     use super::base64;
-    use serde_json::json;
+    
     use serde::{Serialize, Deserialize};
 
     #[derive(Serialize, Deserialize)]

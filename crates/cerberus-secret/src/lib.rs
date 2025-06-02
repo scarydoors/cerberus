@@ -1,4 +1,4 @@
-use serde::{de::{self, DeserializeOwned}, Deserialize, Serialize, Serializer};
+use serde::{de::{self}, Deserialize, Serialize, Serializer};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 #[derive(Zeroize, ZeroizeOnDrop)]
