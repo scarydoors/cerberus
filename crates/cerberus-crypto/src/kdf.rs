@@ -12,7 +12,7 @@ pub struct DerivationMaterial {
     id: KeyIdentifier,
 }
 
-pub fn derive_key(ikm: &[u8], label: &str, len: usize) -> SecretSlice<u8> {
+pub fn hkdf_extract(ikm: &[u8], label: &str, len: usize) -> SecretSlice<u8> {
     let hkdf = HkdfSha256::new(None, ikm);
     let mut okm = vec![0u8; len];
     hkdf.expand(label.as_bytes(), &mut okm).expect("HKDF expand should not fail");
@@ -24,14 +24,11 @@ fn build_info(label: &str, suffix: &str) -> String {
     format!("{}{}", label, suffix)
 }
 
-trait DeriveKey: NewKey {
+pub trait DeriveKey: NewKey {
     const MAC_INFO_SUFFIX: &'static str;
 }
 
 impl DerivationMaterial {
-    const SYMMETRIC_SUFFIX: &'static str = "_symmetric_key";
-    const HMAC_SUFFIX: &'static str = "_hmac_key";
-
     pub fn new(key: SecretSlice<u8>, id: KeyIdentifier) -> Self {
         Self {
             key,
@@ -39,19 +36,11 @@ impl DerivationMaterial {
         }
     }
 
-    pub fn derive_symmetric_key(&self, label: &str) -> SymmetricKey {
-        let kdf_info = build_info(label, Self::SYMMETRIC_SUFFIX);
-        let key = derive_key(self.key.expose_secret(), &kdf_info, SymmetricKey::KEY_SIZE);
+    pub fn derive_key<T: DeriveKey>(&self, label: &str) -> T {
+        let kdf_info = build_info(label, T::MAC_INFO_SUFFIX);
+        let key = hkdf_extract(self.key.expose_secret(), &kdf_info, T::KEY_SIZE);
         let id = KeyIdentifier::derived(kdf_info, Some(self.id.clone()));
 
-        SymmetricKey::new_unchecked(key, id)
-    }
-
-    pub fn derive_hmac_key(&self, label: &str) -> HmacKey {
-        let kdf_info = build_info(label, Self::HMAC_SUFFIX);
-        let key = derive_key(self.key.expose_secret(), &kdf_info, HmacKey::KEY_SIZE);
-        let id = KeyIdentifier::derived(kdf_info, Some(self.id.clone()));
-
-        HmacKey::new_unchecked(key, id)
+        T::new_unchecked(key, id)
     }
 }

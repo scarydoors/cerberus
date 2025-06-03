@@ -5,6 +5,7 @@ use argon2::{
     Argon2,
 };
 use chacha20poly1305::{aead::Aead, AeadCore, KeyInit, XChaCha20Poly1305};
+use kdf::DeriveKey;
 use rand::{rngs::OsRng, CryptoRng, RngCore};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use uuid::Uuid;
@@ -137,6 +138,10 @@ impl NewKey for SymmetricKey {
     fn new_unchecked(key: SecretSlice<u8>, id: KeyIdentifier) -> Self {
         Self { key, id }
     }
+}
+
+impl DeriveKey for SymmetricKey {
+    const MAC_INFO_SUFFIX: &'static str = "_symmmetric_key";
 }
 
 impl Cipher for SymmetricKey {

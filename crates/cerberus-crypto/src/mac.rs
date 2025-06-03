@@ -1,7 +1,7 @@
 use hmac::{digest::CtOutput, Hmac, Mac};
 use sha2::Sha256;
 use cerberus_secret::{ExposeSecret, SecretSlice};
-use crate::{NewKey, Result};
+use crate::{kdf::DeriveKey, NewKey, Result};
 
 pub use cerberus_macros::UpdateHmac;
 
@@ -49,4 +49,8 @@ impl NewKey for HmacKey {
     fn new_unchecked(key: SecretSlice<u8>, id: KeyIdentifier) -> Self {
         Self { key, id }
     }
+}
+
+impl DeriveKey for HmacKey {
+    const MAC_INFO_SUFFIX: &'static str = "_hmac_key";
 }
