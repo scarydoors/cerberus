@@ -30,6 +30,9 @@ pub enum Error {
 
     #[error("derived keys must not be serialized")]
     DerivedKeySerialization,
+
+    #[error("invalid key length, expected: {expected}, actual: {actual}")]
+    InvalidKeyLength { actual: usize, expected: usize }
 }
 
 pub trait Cipher {
@@ -90,6 +93,31 @@ fn forbid_derived_serialization<S: serde::Serializer>(_: &str, _: &Option<Box<Ke
     Err(serde::ser::Error::custom(Error::DerivedKeySerialization))
 }
 
+trait NewKey: Sized {
+    const KEY_SIZE: usize;
+
+    fn new_unchecked(key: SecretSlice<u8>, id: KeyIdentifier) -> Self;
+
+    fn new(key: SecretSlice<u8>, id: KeyIdentifier) -> Result<Self> {
+        let key_len = key.expose_secret().len();
+        if key_len == Self::KEY_SIZE {
+            Ok(
+                Self::new_unchecked(key, id)
+            )
+        } else {
+            Err(Error::InvalidKeyLength { actual: key_len, expected: Self::KEY_SIZE })
+        }
+    }
+
+    fn generate(mut rng: impl CryptoRng + RngCore, id: KeyIdentifier) -> Self {
+        let mut key = vec![0u8; Self::KEY_SIZE];
+
+        rng.fill_bytes(&mut key);
+
+        Self::new_unchecked(key.into(), id)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SymmetricKey {
     #[serde(with = "base64_expose_secret")]
@@ -99,20 +127,13 @@ pub struct SymmetricKey {
 
 impl SymmetricKey {
     pub const KEY_SIZE: usize = 32;
+}
 
-    pub fn new(key: SecretSlice<u8>, id: KeyIdentifier) -> Self {
-        Self {
-            key,
-            id
-        }
-    }
+impl NewKey for SymmetricKey {
+    const KEY_SIZE: usize = 32;
 
-    pub fn generate(rng: impl CryptoRng + RngCore, id: KeyIdentifier) -> Self {
-        let key = XChaCha20Poly1305::generate_key(rng);
-        Self {
-            key: key.to_vec().into(),
-            id
-        }
+    fn new_unchecked(key: SecretSlice<u8>, id: KeyIdentifier) -> Self {
+        Self { key, id }
     }
 }
 

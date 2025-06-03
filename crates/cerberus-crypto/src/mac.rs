@@ -1,7 +1,7 @@
 use hmac::{digest::CtOutput, Hmac, Mac};
 use sha2::Sha256;
 use cerberus_secret::{ExposeSecret, SecretSlice};
-use crate::Result;
+use crate::{NewKey, Result};
 
 pub use cerberus_macros::UpdateHmac;
 
@@ -35,13 +35,6 @@ pub struct HmacKey {
 impl HmacKey {
     pub const KEY_SIZE: usize = 32;
 
-    pub fn new(key: SecretSlice<u8>, id: KeyIdentifier) -> Self {
-        Self {
-            key,
-            id
-        }
-    }
-
     pub fn verify_tag(&self, data: impl UpdateHmac, tag: &[u8]) -> Result<()> {
         let mut mac = self.init_hmac();
         data.update_hmac(&mut mac);
@@ -56,5 +49,13 @@ impl HmacKey {
 
     fn init_hmac(&self) -> HmacSha256 {
         HmacSha256::new_from_slice(self.key.expose_secret()).expect("HMAC should accept keys of any size")
+    }
+}
+
+impl NewKey for HmacKey {
+    const KEY_SIZE: usize = 32;
+
+    fn new_unchecked(key: SecretSlice<u8>, id: KeyIdentifier) -> Self {
+        Self { key, id }
     }
 }

@@ -2,7 +2,7 @@ use cerberus_secret::{SecretSlice, ExposeSecret};
 use hkdf::Hkdf;
 use serde::{Deserialize, Serialize};
 
-use crate::{mac::HmacKey, KeyIdentifier, SymmetricKey};
+use crate::{mac::HmacKey, KeyIdentifier, NewKey, SymmetricKey};
 
 pub(crate) type HkdfSha256 = Hkdf<sha2::Sha256>;
 
@@ -40,7 +40,7 @@ impl DerivationMaterial {
         let key = derive_key(self.key.expose_secret(), &kdf_info, SymmetricKey::KEY_SIZE);
         let id = KeyIdentifier::derived(kdf_info, Some(self.id.clone()));
 
-        SymmetricKey::new(key, id)
+        SymmetricKey::new_unchecked(key, id)
     }
 
     pub fn derive_hmac_key(&self, label: &str) -> HmacKey {
@@ -48,6 +48,6 @@ impl DerivationMaterial {
         let key = derive_key(self.key.expose_secret(), &kdf_info, HmacKey::KEY_SIZE);
         let id = KeyIdentifier::derived(kdf_info, Some(self.id.clone()));
 
-        HmacKey::new(key, id)
+        HmacKey::new_unchecked(key, id)
     }
 }
