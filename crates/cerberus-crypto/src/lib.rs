@@ -126,7 +126,9 @@ pub struct SymmetricKey {
 }
 
 impl SymmetricKey {
-    pub const KEY_SIZE: usize = 32;
+    pub fn id(&self) -> &KeyIdentifier {
+        &self.id
+    }
 }
 
 impl NewKey for SymmetricKey {
@@ -177,7 +179,7 @@ pub struct Envelope<T> {
 impl<T> Envelope<T>
 where T: Serialize + DeserializeOwned {
     pub fn seal(kek: &impl Cipher, data: &T) -> Result<Self> {
-        let dek = SymmetricKey::generate(&mut OsRng, KeyIdentifier::Local);
+        let dek = SymmetricKey::generate(&mut OsRng, KeyIdentifier::local());
         let data = dek.encrypt(data)?;
         let dek_encrypted = kek.encrypt(&dek)?;
 

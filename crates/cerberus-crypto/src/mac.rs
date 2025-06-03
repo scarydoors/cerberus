@@ -11,7 +11,6 @@ pub(crate) type HmacSha256 = Hmac<Sha256>;
 
 pub trait UpdateHmac<M: Mac = HmacSha256> {
     fn update_hmac(&self, hmac: &mut impl Mac);
-
 }
 
 #[derive(Debug, Clone)]
@@ -22,6 +21,10 @@ pub struct HmacKey {
 
 impl HmacKey {
     pub const KEY_SIZE: usize = 32;
+
+    pub fn id(&self) -> &KeyIdentifier {
+        &self.id
+    }
 
     pub fn verify_tag(&self, data: impl UpdateHmac, tag: &[u8]) -> Result<()> {
         let mut mac = self.init_hmac();
