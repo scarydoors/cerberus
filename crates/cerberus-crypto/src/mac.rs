@@ -14,18 +14,6 @@ pub trait UpdateHmac<M: Mac = HmacSha256> {
 
 }
 
-//
-//    fn verify_tag<K: AsRef<[u8]>>(&self, key: K, tag: &[u8]) -> Result<()> {
-//        let mut mac = <M as KeyInit>::new_from_slice(key.as_ref()).expect("HMAC should accept keys of any size");
-//        self.update_hmac(&mut mac);
-//        Ok(mac.verify(tag.into())?)
-//    }
-//    fn compute_tag<K: AsRef<[u8]>>(&self, key: K) -> CtOutput<M> {
-//        let mut mac = <M as KeyInit>::new_from_slice(key.as_ref()).expect("HMAC should accept keys of any size");
-//        self.update_hmac(&mut mac);
-//        mac.finalize()
-//    }
-
 #[derive(Debug, Clone)]
 pub struct HmacKey {
     key: SecretSlice<u8>,

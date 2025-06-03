@@ -93,7 +93,7 @@ fn forbid_derived_serialization<S: serde::Serializer>(_: &str, _: &Option<Box<Ke
     Err(serde::ser::Error::custom(Error::DerivedKeySerialization))
 }
 
-trait NewKey: Sized {
+pub trait NewKey: Sized {
     const KEY_SIZE: usize;
 
     fn new_unchecked(key: SecretSlice<u8>, id: KeyIdentifier) -> Self;
