@@ -19,7 +19,7 @@ fn impl_update_hmac(input: &DeriveInput) -> Result<TokenStream, syn::Error> {
         syn::Data::Struct(data) => {
             let name = &input.ident;
             let input_fields = data.fields.iter().enumerate().filter_map(|(i, field)| {
-                if has_hmac_skip(&field) {
+                if has_hmac_skip(field) {
                     None
                 } else {
                     let tokens = match field.ident.as_ref() {

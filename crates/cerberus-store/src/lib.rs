@@ -10,7 +10,6 @@ pub mod vault;
 
 mod crypto;
 mod database;
-mod nonce_counter;
 
 pub use store::*;
 
@@ -24,9 +23,6 @@ pub enum Error {
 
     #[error("unable to encrypt data")]
     EncryptionFailed(#[from] chacha20poly1305::Error),
-
-    #[error("unable to increment nonce")]
-    NonceError(#[from] nonce_counter::NonceError),
 
     #[error("malformed data in store")]
     DeserializationError(#[from] serde_json::Error),

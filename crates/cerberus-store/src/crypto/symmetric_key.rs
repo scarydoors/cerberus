@@ -57,7 +57,7 @@ impl Cipher for SymmetricKey {
 
         let cipher = XChaCha20Poly1305::new(self.key.as_slice().into());
         let nonce = XChaCha20Poly1305::generate_nonce(&mut OsRng);
-        let encrypted_data = cipher.encrypt(&nonce.into(), data.as_bytes())?;
+        let encrypted_data = cipher.encrypt(&nonce, data.as_bytes())?;
 
         Ok(EncryptedData {
             enc_data: encrypted_data,

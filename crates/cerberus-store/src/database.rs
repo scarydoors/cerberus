@@ -238,7 +238,7 @@ impl Database {
         MIGRATOR
             .run(&pool)
             .await
-            .map_err(|err| sqlx::Error::from(err))?;
+            .map_err(sqlx::Error::from)?;
 
         Ok(Self { pool })
     }
@@ -298,13 +298,13 @@ impl<'a> DatabaseTransaction<'a> {
     }
 }
 
-impl<'a> Repository for DatabaseTransaction<'a> {
+impl Repository for DatabaseTransaction<'_> {
     fn get_executor(&mut self) -> impl Executor<'_, Database = Sqlite> {
         &mut *self.transaction
     }
 }
 
-impl<'a> Repository for &mut DatabaseTransaction<'a> {
+impl Repository for &mut DatabaseTransaction<'_> {
     fn get_executor(&mut self) -> impl Executor<'_, Database = Sqlite> {
         (**self).get_executor()
     }

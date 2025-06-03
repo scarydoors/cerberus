@@ -38,9 +38,9 @@ pub mod base64 {
                     .map_err(E::custom)?
                     .try_into()
                     .map_err(|_| {
-                        E::custom(format!(
+                        E::custom(
                             "Failed to convert base64 decoded data to target type"
-                        ))
+                        )
                     })
             }
         }

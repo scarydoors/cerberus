@@ -82,7 +82,7 @@ impl KeyIdentifier {
     pub fn derived(context: String, derived_from: Option<KeyIdentifier>) -> Self {
         KeyIdentifier::Derived {
             context,
-            derived_from: derived_from.map(|ident| Box::new(ident)),
+            derived_from: derived_from.map(Box::new),
         }
     }
 }
@@ -230,7 +230,7 @@ mod tests {
     #[test]
     fn it_works() {
         let master_key =
-            SymmetricKey::generate(&mut OsRng, KeyIdentifier::Derived("coolkey".into()));
+            SymmetricKey::generate(&mut OsRng, KeyIdentifier::derived("coolkey".into(), None));
 
         let envelope = Envelope::seal(
             &master_key,

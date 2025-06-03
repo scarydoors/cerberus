@@ -2,7 +2,7 @@ use cerberus_secret::{ExposeSecret, SecretSlice};
 use hkdf::Hkdf;
 use serde::{Deserialize, Serialize};
 
-use crate::{mac::HmacKey, KeyIdentifier, NewKey, SymmetricKey};
+use crate::{KeyIdentifier, NewKey};
 
 pub(crate) type HkdfSha256 = Hkdf<sha2::Sha256>;
 

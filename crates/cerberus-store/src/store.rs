@@ -102,7 +102,7 @@ impl Store {
     }
 
     async fn ensure_profile_retrieved(&mut self) -> Result<(), Error> {
-        if let None = self.profile {
+        if self.profile.is_none() {
             self.profile = Some(
                 self.database
                     .get_profile()
@@ -116,7 +116,7 @@ impl Store {
     }
 
     async fn ensure_master_key_retrieved(&mut self) -> Result<(), Error> {
-        if let None = self.master_key {
+        if self.master_key.is_none() {
             let profile = self
                 .profile
                 .as_ref()
@@ -141,10 +141,10 @@ impl Store {
             .map_or(Ok(()), |_| Err(Error::ProfileAlreadyExists))?;
 
         let salt = generate_salt();
-        let mut derived_key = SymmetricKey::from_password(password.as_bytes(), &salt);
+        let derived_key = SymmetricKey::from_password(password.as_bytes(), &salt);
         let master_key = SymmetricKey::generate(&mut OsRng);
 
-        let mut encrypted_master_key = master_key.clone().into_encrypted_key(&mut derived_key);
+        let mut encrypted_master_key = master_key.clone().into_encrypted_key(&derived_key);
         let (profile, encrypted_master_key) = self
             .database
             .transaction(|mut transaction| {
@@ -169,14 +169,17 @@ impl Store {
     }
 
     pub async fn create_vault(&self, name: String) -> Result<Vault, Error> {
-        let master_key = self
-            .master_key
-            .as_ref()
-            .ok_or(Error::Locked)?
-            .lock()
-            .unwrap();
-        let vault_key = SymmetricKey::generate(&mut OsRng);
-        let mut encrypted_vault_key = vault_key.into_encrypted_key(&*master_key);
+        let mut encrypted_vault_key = {
+            let master_key = self
+                .master_key
+                .as_ref()
+                .ok_or(Error::Locked)?
+                .lock()
+                .unwrap();
+            let vault_key = SymmetricKey::generate(&mut OsRng);
+
+            vault_key.into_encrypted_key(&*master_key)
+        };
 
         let (vault_record, encrypted_vault_key) = self
             .database

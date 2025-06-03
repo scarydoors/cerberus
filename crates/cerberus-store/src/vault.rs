@@ -40,7 +40,7 @@ impl Cipher for VaultKey {
     ) -> Result<EncryptedData<T>, Error> {
         let key = self.get_symmetric_key()?;
 
-        Ok(key.encrypt(data)?)
+        key.encrypt(data)
     }
 
     fn decrypt<T: Serialize + DeserializeOwned>(
@@ -49,7 +49,7 @@ impl Cipher for VaultKey {
     ) -> Result<T, Error> {
         let key = self.get_symmetric_key()?;
 
-        Ok(key.decrypt(data)?)
+        key.decrypt(data)
     }
 }
 

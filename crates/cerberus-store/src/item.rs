@@ -89,10 +89,10 @@ impl Item {
     }
 
     pub fn overview(&self) -> Result<ItemOverview, Error> {
-        Ok(self.enc_overview.decrypt(&self.vault_key)?)
+        self.enc_overview.decrypt(&self.vault_key)
     }
 
     pub fn data(&self) -> Result<ItemData, Error> {
-        Ok(self.enc_data.decrypt(&self.vault_key)?)
+        self.enc_data.decrypt(&self.vault_key)
     }
 }
