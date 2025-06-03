@@ -12,7 +12,7 @@ pub struct DerivationMaterial {
     id: KeyIdentifier,
 }
 
-pub fn hkdf_extract(ikm: &[u8], label: &str, len: usize) -> SecretSlice<u8> {
+fn hkdf_extract(ikm: &[u8], label: &str, len: usize) -> SecretSlice<u8> {
     let hkdf = HkdfSha256::new(None, ikm);
     let mut okm = vec![0u8; len];
     hkdf.expand(label.as_bytes(), &mut okm).expect("HKDF expand should not fail");
