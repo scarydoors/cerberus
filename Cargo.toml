@@ -4,18 +4,27 @@ members = [
   "crates/cerberus-daemon",
   "crates/cerberus-store",
   "crates/cerberus-tauri",
+  "crates/cerberus-crypto",
+  "crates/cerberus-macros", "crates/cerberus-serde", "crates/cerberus-secret",
 ]
 resolver = "2"
 
 [workspace.dependencies]
 thiserror = "1.0"
 anyhow = "1.0"
+hmac = "0.12.1"
+zeroize = { version = "1.8.1", features = ["zeroize_derive"] }
 tokio = { version = "1.42.0", features = ["rt", "rt-multi-thread", "macros", "net", "fs", "io-util"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+sha2 = "0.10.9"
 
+cerberus-serde = { path = "crates/cerberus-serde" }
 cerberus-store = { path = "crates/cerberus-store" }
 cerberus-daemon = { path = "crates/cerberus-daemon" }
+cerberus-crypto = { path = "crates/cerberus-crypto" }
+cerberus-macros = { path = "crates/cerberus-macros" }
+cerberus-secret = { path = "crates/cerberus-secret" }
 
 [profile.dev.package.sqlx-macros]
 opt-level = 3

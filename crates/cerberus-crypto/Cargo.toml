@@ -1,0 +1,23 @@
+[package]
+name = "cerberus-crypto"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+argon2 = { version = "0.5.3", features = ["std"] }
+chacha20poly1305 = { version = "0.10.1", features = ["std"] }
+chrono = { version = "0.4.39", features = ["serde"] }
+rand = "0.8.5"
+uuid = { version = "1.16.0", features = ["v4", "serde"] }
+hkdf = "0.12.4"
+hex = { version = "0.4.3", features = ["serde"] }
+
+sha2.workspace = true
+cerberus-serde.workspace = true
+cerberus-macros.workspace = true
+cerberus-secret.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+hmac.workspace = true

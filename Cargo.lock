@@ -411,6 +411,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "cerberus-crypto"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "argon2",
+ "cerberus-macros",
+ "cerberus-secret",
+ "cerberus-serde",
+ "chacha20poly1305",
+ "chrono",
+ "hex",
+ "hkdf",
+ "hmac",
+ "rand 0.8.5",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror 1.0.69",
+ "uuid",
+]
+
+[[package]]
 name = "cerberus-daemon"
 version = "0.1.0"
 dependencies = [
@@ -420,6 +442,36 @@ dependencies = [
  "serde_json",
  "thiserror 1.0.69",
  "tokio",
+]
+
+[[package]]
+name = "cerberus-macros"
+version = "0.1.0"
+dependencies = [
+ "cerberus-crypto",
+ "hmac",
+ "quote",
+ "serde_json",
+ "syn 2.0.101",
+]
+
+[[package]]
+name = "cerberus-secret"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "zeroize",
+]
+
+[[package]]
+name = "cerberus-serde"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "cerberus-secret",
+ "serde",
+ "serde_json",
+ "zeroize",
 ]
 
 [[package]]
@@ -1591,6 +1643,9 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "hkdf"
@@ -5874,6 +5929,20 @@ name = "zeroize"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ced3678a2879b30306d323f4542626697a464a97c0a07c9aebf7ebca65cd4dde"
+dependencies = [
+ "zeroize_derive",
+]
+
+[[package]]
+name = "zeroize_derive"
+version = "1.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce36e65b0d2999d2aafac989fb249189a141aee1f53c612c1f37d72631959f69"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.101",
+]
 
 [[package]]
 name = "zerovec"
