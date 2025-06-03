@@ -26,7 +26,7 @@ impl<T: Serialize + DeserializeOwned> Clone for EncryptedData<T> {
             enc_data: self.enc_data.clone(),
             nonce: self.nonce,
             key_id: self.key_id,
-            _phantom: PhantomData
+            _phantom: PhantomData,
         }
     }
 }
@@ -52,10 +52,16 @@ pub(crate) struct EncryptedDataKeyPair<T: Serialize + DeserializeOwned> {
 
 impl<T: Serialize + DeserializeOwned> EncryptedDataKeyPair<T> {
     pub(crate) fn new(encrypted_data: EncryptedData<T>, encrypted_key: EncryptedKey) -> Self {
-        Self { encrypted_data, encrypted_key }
+        Self {
+            encrypted_data,
+            encrypted_key,
+        }
     }
 
-    pub(crate) fn encrypt_with_random_key(data: T, parent_key: &SymmetricKey) -> Result<Self, Error> {
+    pub(crate) fn encrypt_with_random_key(
+        data: T,
+        parent_key: &SymmetricKey,
+    ) -> Result<Self, Error> {
         let key = SymmetricKey::generate(&mut OsRng);
         let encrypted_data = key.encrypt(&data).unwrap();
         let encrypted_key = key.into_encrypted_key(parent_key);
@@ -63,7 +69,11 @@ impl<T: Serialize + DeserializeOwned> EncryptedDataKeyPair<T> {
         Ok(Self::new(encrypted_data, encrypted_key))
     }
 
-    pub(crate) fn encrypt_and_replace<K: Cipher>(&mut self, parent_key: &K, new_data: &T) -> Result<(), Error> {
+    pub(crate) fn encrypt_and_replace<K: Cipher>(
+        &mut self,
+        parent_key: &K,
+        new_data: &T,
+    ) -> Result<(), Error> {
         let key = self.get_encryption_key(parent_key)?;
         let new_data_enc = key.encrypt(new_data)?;
 

@@ -2,7 +2,10 @@ use anyhow::Result;
 
 use cerberus_daemon::get_socket_path;
 use cerberus_daemon::server::Server;
-use tokio::{io::{AsyncBufReadExt, BufReader}, net::UnixStream};
+use tokio::{
+    io::{AsyncBufReadExt, BufReader},
+    net::UnixStream,
+};
 
 #[tokio::main]
 async fn main() -> Result<()> {

@@ -1,4 +1,4 @@
-use std::{path::PathBuf, env};
+use std::{env, path::PathBuf};
 
 pub mod server;
 
@@ -8,20 +8,14 @@ fn get_euid() -> u32 {
 
 pub fn get_socket_path() -> PathBuf {
     #[cfg(target_os = "macos")]
-    let base_dir = PathBuf::from(
-        env::var("TMPDIR").unwrap_or_else(|_| "/tmp".to_string())
-    );
+    let base_dir = PathBuf::from(env::var("TMPDIR").unwrap_or_else(|_| "/tmp".to_string()));
 
     #[cfg(target_os = "linux")]
-    let base_dir = {
-        PathBuf::from("/tmp")
-    };
+    let base_dir = { PathBuf::from("/tmp") };
 
     let socket_dir_name = format!("cerberus{}", get_euid());
 
-    base_dir
-        .join(socket_dir_name)
-        .join("agent")
+    base_dir.join(socket_dir_name).join("agent")
 }
 
 #[derive(thiserror::Error, Debug)]

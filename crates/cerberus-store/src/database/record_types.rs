@@ -1,8 +1,12 @@
-use chrono::{NaiveDateTime};
+use chrono::NaiveDateTime;
 use sqlx::types::Json;
 
 use crate::{
-    crypto::{Cipher, EncryptedData, EncryptedDataKeyPair, EncryptedKey}, item::{Item, ItemData, ItemOverview, ItemPreview}, store::Profile, vault::{Vault, VaultKey, VaultPreview}, Error
+    crypto::{Cipher, EncryptedData, EncryptedDataKeyPair, EncryptedKey},
+    item::{Item, ItemData, ItemOverview, ItemPreview},
+    store::Profile,
+    vault::{Vault, VaultKey, VaultPreview},
+    Error,
 };
 
 use super::Database;
@@ -99,8 +103,14 @@ pub(crate) struct ItemPreviewRecord {
 }
 
 impl ItemPreviewRecord {
-    pub(crate) fn try_into_item_preview<K: Cipher>(self, parent_key: &K) -> Result<ItemPreview, Error> {
-        let enc_overview_key = EncryptedKey::new(Some(self.overview_key_id), self.overview_key_encrypted_data.0);
+    pub(crate) fn try_into_item_preview<K: Cipher>(
+        self,
+        parent_key: &K,
+    ) -> Result<ItemPreview, Error> {
+        let enc_overview_key = EncryptedKey::new(
+            Some(self.overview_key_id),
+            self.overview_key_encrypted_data.0,
+        );
         let overview_key = enc_overview_key.try_to_symmetric_key(parent_key)?;
 
         let overview_data = overview_key.decrypt(&self.overview_encrypted_data.0)?;
@@ -123,7 +133,13 @@ pub(crate) struct ItemRecord {
 }
 
 impl ItemRecord {
-    pub(crate) fn into_item(self, overview_key: EncryptedKey, data_key: EncryptedKey, vault_key: VaultKey, database: Database) -> Item {
+    pub(crate) fn into_item(
+        self,
+        overview_key: EncryptedKey,
+        data_key: EncryptedKey,
+        vault_key: VaultKey,
+        database: Database,
+    ) -> Item {
         Item::new(
             self.id,
             EncryptedDataKeyPair::new(self.overview_encrypted_data.0, overview_key),
@@ -131,7 +147,7 @@ impl ItemRecord {
             self.created_at.and_utc(),
             self.updated_at.and_utc(),
             vault_key,
-            database
+            database,
         )
     }
 }
@@ -144,9 +160,11 @@ pub(crate) struct ItemRecordWithKeys {
 
 impl ItemRecordWithKeys {
     pub(crate) fn into_item(self, vault_key: VaultKey, database: Database) -> Item {
-        let overview_key = EncryptedKey::new(Some(self.item_record.overview_key_id), self.overview_key.0);
+        let overview_key =
+            EncryptedKey::new(Some(self.item_record.overview_key_id), self.overview_key.0);
         let data_key = EncryptedKey::new(Some(self.item_record.item_key_id), self.data_key.0);
 
-        self.item_record.into_item(overview_key, data_key, vault_key, database)
+        self.item_record
+            .into_item(overview_key, data_key, vault_key, database)
     }
 }

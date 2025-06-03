@@ -15,7 +15,7 @@ pub struct Item {
 
 pub struct ItemPreview {
     id: i64,
-    overview: ItemOverview
+    overview: ItemOverview,
 }
 
 impl ItemPreview {
@@ -35,15 +35,12 @@ impl ItemPreview {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ItemOverview {
     name: String,
-    site: String
+    site: String,
 }
 
 impl ItemOverview {
     pub fn new(name: String, site: String) -> Self {
-        Self {
-            name,
-            site
-        }
+        Self { name, site }
     }
 
     pub fn name(&self) -> &str {
@@ -57,14 +54,12 @@ impl ItemOverview {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ItemData {
-    secret: String
+    secret: String,
 }
 
 impl ItemData {
     pub fn new(secret: String) -> Self {
-        Self {
-            secret
-        }
+        Self { secret }
     }
 
     pub fn secret(&self) -> &str {

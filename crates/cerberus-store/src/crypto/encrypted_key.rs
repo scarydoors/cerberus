@@ -1,6 +1,6 @@
-use crate::Error;
+use super::{Cipher, EncryptedData, SymmetricKey};
 use crate::database::Repository;
-use super::{SymmetricKey, EncryptedData, Cipher};
+use crate::Error;
 
 #[derive(Debug, Clone)]
 pub(crate) struct EncryptedKey {
@@ -25,9 +25,7 @@ impl EncryptedKey {
     }
 
     pub(crate) async fn store<R: Repository>(&mut self, repo: &mut R) -> Result<(), Error> {
-        let key_record = repo
-            .store_key(&self.key_encrypted_data)
-            .await?;
+        let key_record = repo.store_key(&self.key_encrypted_data).await?;
 
         self.id = Some(key_record.id);
 

@@ -1,4 +1,4 @@
-use cerberus_secret::{SecretSlice, ExposeSecret};
+use cerberus_secret::{ExposeSecret, SecretSlice};
 use hkdf::Hkdf;
 use serde::{Deserialize, Serialize};
 
@@ -15,7 +15,8 @@ pub struct DerivationMaterial {
 fn hkdf_extract(ikm: &[u8], label: &str, len: usize) -> SecretSlice<u8> {
     let hkdf = HkdfSha256::new(None, ikm);
     let mut okm = vec![0u8; len];
-    hkdf.expand(label.as_bytes(), &mut okm).expect("HKDF expand should not fail");
+    hkdf.expand(label.as_bytes(), &mut okm)
+        .expect("HKDF expand should not fail");
 
     SecretSlice::from(okm)
 }
@@ -30,10 +31,7 @@ pub trait DeriveKey: NewKey {
 
 impl DerivationMaterial {
     pub fn new(key: SecretSlice<u8>, id: KeyIdentifier) -> Self {
-        Self {
-            key,
-            id
-        }
+        Self { key, id }
     }
 
     pub fn derive_key<T: DeriveKey>(&self, label: &str) -> T {

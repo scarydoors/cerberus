@@ -1,7 +1,7 @@
+use crate::{kdf::DeriveKey, NewKey, Result};
+use cerberus_secret::{ExposeSecret, SecretSlice};
 use hmac::{digest::CtOutput, Hmac, Mac};
 use sha2::Sha256;
-use cerberus_secret::{ExposeSecret, SecretSlice};
-use crate::{kdf::DeriveKey, NewKey, Result};
 
 pub use cerberus_macros::UpdateHmac;
 
@@ -39,7 +39,8 @@ impl HmacKey {
     }
 
     fn init_hmac(&self) -> HmacSha256 {
-        HmacSha256::new_from_slice(self.key.expose_secret()).expect("HMAC should accept keys of any size")
+        HmacSha256::new_from_slice(self.key.expose_secret())
+            .expect("HMAC should accept keys of any size")
     }
 }
 

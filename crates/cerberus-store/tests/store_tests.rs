@@ -2,7 +2,6 @@ use cerberus_store::item::{ItemData, ItemOverview};
 use cerberus_store::Store;
 use sqlx::SqlitePool;
 
-
 static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
 
 #[sqlx::test(migrator = "MIGRATOR")]
@@ -10,17 +9,20 @@ async fn can_store_and_retrieve_data(pool: SqlitePool) {
     let mut store = Store::from_pool(pool).unwrap();
 
     let password = String::from("mypassword");
-    store.initialize_profile("User".to_owned(), &password).await.unwrap();
+    store
+        .initialize_profile("User".to_owned(), &password)
+        .await
+        .unwrap();
 
     let vault_name = String::from("Personal vault");
-    let vault = store.create_vault("Personal vault".to_owned()).await.unwrap();
+    let vault = store
+        .create_vault("Personal vault".to_owned())
+        .await
+        .unwrap();
     {
         let name = String::from("My item");
         let site = String::from("https://my-item.com");
-        let item_overview = ItemOverview::new(
-            name.clone(),
-            site.clone()
-        );
+        let item_overview = ItemOverview::new(name.clone(), site.clone());
 
         let secret = String::from("item-password");
         let item_data = ItemData::new(secret.clone());

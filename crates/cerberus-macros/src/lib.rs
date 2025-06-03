@@ -8,7 +8,7 @@ pub fn derive_update_hmac(input: TokenStream) -> TokenStream {
 
     match impl_update_hmac(&input) {
         Ok(tokens) => tokens,
-        Err(e) => e.into_compile_error().into()
+        Err(e) => e.into_compile_error().into(),
     }
 }
 
@@ -24,7 +24,7 @@ fn impl_update_hmac(input: &DeriveInput) -> Result<TokenStream, syn::Error> {
                 } else {
                     let tokens = match field.ident.as_ref() {
                         Some(ident) => quote! { self.#ident },
-                        None => quote! { self.#i }
+                        None => quote! { self.#i },
                     };
 
                     Some(tokens)
@@ -41,8 +41,11 @@ fn impl_update_hmac(input: &DeriveInput) -> Result<TokenStream, syn::Error> {
             };
 
             Ok(expanded.into())
-        },
-        _ => Err(syn::Error::new_spanned(input, "#[derive(UpdateHmac)] can only be used with structs"))
+        }
+        _ => Err(syn::Error::new_spanned(
+            input,
+            "#[derive(UpdateHmac)] can only be used with structs",
+        )),
     }
 }
 
@@ -51,7 +54,7 @@ fn has_hmac_skip(field: &Field) -> bool {
         if attr.path().is_ident("hmac") {
             match attr.parse_args::<syn::Path>() {
                 Ok(path) => path.is_ident("skip"),
-                _ => false
+                _ => false,
             }
         } else {
             false

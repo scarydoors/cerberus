@@ -1,13 +1,17 @@
 use crate::Error;
-use std::{path::Path};
-use tokio::{fs, io::{AsyncBufReadExt, BufReader}, net::{UnixListener, UnixStream}};
+use std::path::Path;
+use tokio::{
+    fs,
+    io::{AsyncBufReadExt, BufReader},
+    net::{UnixListener, UnixStream},
+};
 
 struct State {
-    master_key: [u8; 32]
+    master_key: [u8; 32],
 }
 
 pub struct Server {
-    listener: UnixListener
+    listener: UnixListener,
 }
 
 impl Server {
@@ -15,16 +19,17 @@ impl Server {
         let path_ref = path.as_ref();
 
         fs::create_dir_all(path_ref.parent().unwrap()).await?;
-        fs::remove_file(path_ref).await
-            .or_else(
-                |e| if e.kind() != std::io::ErrorKind::NotFound { Err(e) } else { Ok(()) }
-            )?;
+        fs::remove_file(path_ref).await.or_else(|e| {
+            if e.kind() != std::io::ErrorKind::NotFound {
+                Err(e)
+            } else {
+                Ok(())
+            }
+        })?;
 
         let listener = UnixListener::bind(path)?;
 
-        Ok(Self {
-            listener
-        })
+        Ok(Self { listener })
     }
 
     pub async fn run(self) -> Result<(), Error> {
@@ -50,7 +55,6 @@ impl Server {
                     return Err(e.into());
                 }
             }
-
 
             line_buffer.clear();
         }

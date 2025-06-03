@@ -1,5 +1,5 @@
-use cerberus_daemon::get_socket_path;
 use anyhow::Result;
+use cerberus_daemon::get_socket_path;
 use tokio::{io::AsyncWriteExt, net::UnixStream};
 
 #[tokio::main]

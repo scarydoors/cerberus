@@ -4,16 +4,16 @@ use argon2::{
     password_hash::{PasswordHasher, Salt, SaltString},
     Argon2,
 };
+use cerberus_secret::{ExposeSecret, SecretSlice};
+use cerberus_serde::{base64, base64_expose_secret};
 use chacha20poly1305::{aead::Aead, AeadCore, KeyInit, XChaCha20Poly1305};
 use kdf::DeriveKey;
 use rand::{rngs::OsRng, CryptoRng, RngCore};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use uuid::Uuid;
-use cerberus_secret::{SecretSlice, ExposeSecret};
-use cerberus_serde::{base64, base64_expose_secret};
 
-pub mod mac;
 pub mod kdf;
+pub mod mac;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -33,7 +33,7 @@ pub enum Error {
     DerivedKeySerialization,
 
     #[error("invalid key length, expected: {expected}, actual: {actual}")]
-    InvalidKeyLength { actual: usize, expected: usize }
+    InvalidKeyLength { actual: usize, expected: usize },
 }
 
 pub trait Cipher {
@@ -43,16 +43,13 @@ pub trait Cipher {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(transparent)]
-struct Nonce(
-    #[serde(with="base64")]
-    [u8; 24]
-);
+struct Nonce(#[serde(with = "base64")] [u8; 24]);
 
 type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EncryptedData<T> {
-    #[serde(with="base64")]
+    #[serde(with = "base64")]
     encrypted_data: Vec<u8>,
     key_id: KeyIdentifier,
     nonce: Nonce,
@@ -69,7 +66,7 @@ pub enum KeyIdentifier {
     #[serde(serialize_with = "forbid_derived_serialization")]
     Derived {
         context: String,
-        derived_from: Option<Box<KeyIdentifier>>
+        derived_from: Option<Box<KeyIdentifier>>,
     },
 }
 
@@ -85,12 +82,16 @@ impl KeyIdentifier {
     pub fn derived(context: String, derived_from: Option<KeyIdentifier>) -> Self {
         KeyIdentifier::Derived {
             context,
-            derived_from: derived_from.map(|ident| Box::new(ident))
+            derived_from: derived_from.map(|ident| Box::new(ident)),
         }
     }
 }
 
-fn forbid_derived_serialization<S: serde::Serializer>(_: &str, _: &Option<Box<KeyIdentifier>>, _serializer: S) -> std::result::Result<S::Ok, S::Error> {
+fn forbid_derived_serialization<S: serde::Serializer>(
+    _: &str,
+    _: &Option<Box<KeyIdentifier>>,
+    _serializer: S,
+) -> std::result::Result<S::Ok, S::Error> {
     Err(serde::ser::Error::custom(Error::DerivedKeySerialization))
 }
 
@@ -102,11 +103,12 @@ pub trait NewKey: Sized {
     fn new(key: SecretSlice<u8>, id: KeyIdentifier) -> Result<Self> {
         let key_len = key.expose_secret().len();
         if key_len == Self::KEY_SIZE {
-            Ok(
-                Self::new_unchecked(key, id)
-            )
+            Ok(Self::new_unchecked(key, id))
         } else {
-            Err(Error::InvalidKeyLength { actual: key_len, expected: Self::KEY_SIZE })
+            Err(Error::InvalidKeyLength {
+                actual: key_len,
+                expected: Self::KEY_SIZE,
+            })
         }
     }
 
@@ -145,10 +147,7 @@ impl DeriveKey for SymmetricKey {
 }
 
 impl Cipher for SymmetricKey {
-    fn encrypt<T: Serialize>(
-        &self,
-        data: &T,
-    ) -> Result<EncryptedData<T>> {
+    fn encrypt<T: Serialize>(&self, data: &T) -> Result<EncryptedData<T>> {
         let data = serde_json::to_string(&data)?;
 
         let cipher = XChaCha20Poly1305::new(self.key.expose_secret().into());
@@ -163,12 +162,12 @@ impl Cipher for SymmetricKey {
         })
     }
 
-    fn decrypt<T: DeserializeOwned>(
-        &self,
-        encrypted_data: &EncryptedData<T>,
-    ) -> Result<T> {
+    fn decrypt<T: DeserializeOwned>(&self, encrypted_data: &EncryptedData<T>) -> Result<T> {
         let cipher = XChaCha20Poly1305::new(self.key.expose_secret().into());
-        let decrypted_data = cipher.decrypt(&encrypted_data.nonce.0.into(), encrypted_data.encrypted_data.as_slice())?;
+        let decrypted_data = cipher.decrypt(
+            &encrypted_data.nonce.0.into(),
+            encrypted_data.encrypted_data.as_slice(),
+        )?;
 
         let data = serde_json::from_slice(&decrypted_data)?;
         Ok(data)
@@ -178,11 +177,13 @@ impl Cipher for SymmetricKey {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Envelope<T> {
     data: EncryptedData<T>,
-    dek: EncryptedData<SymmetricKey>
+    dek: EncryptedData<SymmetricKey>,
 }
 
 impl<T> Envelope<T>
-where T: Serialize + DeserializeOwned {
+where
+    T: Serialize + DeserializeOwned,
+{
     pub fn seal(kek: &impl Cipher, data: &T) -> Result<Self> {
         let dek = SymmetricKey::generate(&mut OsRng, KeyIdentifier::local());
         let data = dek.encrypt(data)?;
@@ -190,7 +191,7 @@ where T: Serialize + DeserializeOwned {
 
         Ok(Self {
             data,
-            dek: dek_encrypted
+            dek: dek_encrypted,
         })
     }
 
@@ -201,7 +202,6 @@ where T: Serialize + DeserializeOwned {
         Ok(data)
     }
 }
-
 
 pub fn generate_salt() -> String {
     SaltString::generate(&mut OsRng).to_string()
@@ -224,14 +224,21 @@ mod tests {
 
     #[derive(Serialize, Deserialize)]
     struct SecretOwned {
-        data: String
+        data: String,
     }
 
     #[test]
     fn it_works() {
-        let master_key = SymmetricKey::generate(&mut OsRng, KeyIdentifier::Derived("coolkey".into()));
+        let master_key =
+            SymmetricKey::generate(&mut OsRng, KeyIdentifier::Derived("coolkey".into()));
 
-        let envelope = Envelope::seal(&master_key, &SecretOwned { data: String::from("what") }).unwrap();
+        let envelope = Envelope::seal(
+            &master_key,
+            &SecretOwned {
+                data: String::from("what"),
+            },
+        )
+        .unwrap();
 
         let decrypted = envelope.open(&master_key).unwrap();
     }

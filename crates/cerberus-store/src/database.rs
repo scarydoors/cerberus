@@ -5,16 +5,16 @@ use sqlx::Error as SqlxError;
 use sqlx::{sqlite::SqliteConnectOptions, types::Json, Executor, Sqlite, SqlitePool, Transaction};
 
 use crate::item::{ItemData, ItemOverview};
-use crate::{
-    crypto::EncryptedData,
-    Error,
-};
+use crate::{crypto::EncryptedData, Error};
 
 pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
 
 pub mod record_types;
 
-use record_types::{EncryptedKeyRecord, ItemPreviewRecord, ItemRecord, ItemRecordWithKeys, ProfileRecord, VaultPreviewRecord, VaultRecord};
+use record_types::{
+    EncryptedKeyRecord, ItemPreviewRecord, ItemRecord, ItemRecordWithKeys, ProfileRecord,
+    VaultPreviewRecord, VaultRecord,
+};
 
 pub(crate) trait Repository {
     async fn store_vault(&mut self, name: &str, key_id: i64) -> Result<VaultRecord, Error> {
@@ -31,13 +31,9 @@ pub(crate) trait Repository {
     }
 
     async fn find_vault(&mut self, id: i64) -> Result<Option<VaultRecord>, Error> {
-        let vault_record = sqlx::query_as!(
-            VaultRecord,
-            "SELECT * FROM vaults WHERE id = ?",
-            id
-        )
-        .fetch_optional(self.get_executor())
-        .await?;
+        let vault_record = sqlx::query_as!(VaultRecord, "SELECT * FROM vaults WHERE id = ?", id)
+            .fetch_optional(self.get_executor())
+            .await?;
 
         Ok(vault_record)
     }
@@ -107,12 +103,10 @@ pub(crate) trait Repository {
     }
 
     async fn list_vault_previews(&mut self) -> Result<Vec<VaultPreviewRecord>, Error> {
-        let vault_overview_records = sqlx::query_as!(
-            VaultPreviewRecord,
-            "SELECT id, name FROM vaults"
-        )
-            .fetch_all(self.get_executor())
-            .await?;
+        let vault_overview_records =
+            sqlx::query_as!(VaultPreviewRecord, "SELECT id, name FROM vaults")
+                .fetch_all(self.get_executor())
+                .await?;
 
         Ok(vault_overview_records)
     }
@@ -123,7 +117,7 @@ pub(crate) trait Repository {
         enc_item_overview: &EncryptedData<ItemOverview>,
         item_overview_key_id: i64,
         enc_item_data: &EncryptedData<ItemData>,
-        item_data_key_id: i64
+        item_data_key_id: i64,
     ) -> Result<ItemRecord, Error> {
         let serialized_item_overview = serde_json::to_string(enc_item_overview)?;
         let serialized_item_data = serde_json::to_string(enc_item_data)?;
@@ -189,7 +183,7 @@ pub(crate) trait Repository {
                 item_encrypted_data: record.item_encrypted_data,
                 item_key_id: record.item_key_id,
                 created_at: record.created_at,
-                updated_at: record.updated_at
+                updated_at: record.updated_at,
             },
             overview_key: record.overview_key_encrypted_data,
             data_key: record.data_key_encrypted_data,
@@ -198,7 +192,10 @@ pub(crate) trait Repository {
         Ok(item_record_with_keys)
     }
 
-    async fn list_item_previews(&mut self, vault_id: Option<i64>) -> Result<Vec<ItemPreviewRecord>, Error> {
+    async fn list_item_previews(
+        &mut self,
+        vault_id: Option<i64>,
+    ) -> Result<Vec<ItemPreviewRecord>, Error> {
         let vault_id = vault_id.unwrap();
         let item_preview_records = sqlx::query_as!(
             ItemPreviewRecord,

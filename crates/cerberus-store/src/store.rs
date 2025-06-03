@@ -7,10 +7,10 @@ use crate::Error;
 use chrono::DateTime;
 use chrono::Utc;
 use rand::rngs::OsRng;
+use sqlx::SqlitePool;
 use std::path::Path;
 use std::sync::Arc;
 use std::sync::Mutex;
-use sqlx::SqlitePool;
 
 #[derive(Debug)]
 pub struct Profile {
@@ -62,7 +62,7 @@ impl Store {
         Ok(Store {
             database: Database::from_pool(pool),
             master_key: None,
-            profile: None
+            profile: None,
         })
     }
 
@@ -144,21 +144,26 @@ impl Store {
         let mut derived_key = SymmetricKey::from_password(password.as_bytes(), &salt);
         let master_key = SymmetricKey::generate(&mut OsRng);
 
-
         let mut encrypted_master_key = master_key.clone().into_encrypted_key(&mut derived_key);
-        let (profile, encrypted_master_key) = self.database.transaction(|mut transaction| {
-            Box::pin(async move {
-                encrypted_master_key.store(&mut transaction).await?;
-                let profile_record = transaction
-                    .store_profile(&name, &salt, encrypted_master_key.id().unwrap())
-                    .await?;
+        let (profile, encrypted_master_key) = self
+            .database
+            .transaction(|mut transaction| {
+                Box::pin(async move {
+                    encrypted_master_key.store(&mut transaction).await?;
+                    let profile_record = transaction
+                        .store_profile(&name, &salt, encrypted_master_key.id().unwrap())
+                        .await?;
 
-                Ok::<_, Error>((profile_record.into_profile(), encrypted_master_key))
+                    Ok::<_, Error>((profile_record.into_profile(), encrypted_master_key))
+                })
             })
-        }).await?;
+            .await?;
 
         self.profile = Some(profile);
-        self.master_key = Some(Arc::new(Mutex::new(SecureKey::new_unlocked(encrypted_master_key, master_key))));
+        self.master_key = Some(Arc::new(Mutex::new(SecureKey::new_unlocked(
+            encrypted_master_key,
+            master_key,
+        ))));
 
         Ok(())
     }
@@ -195,7 +200,9 @@ impl Store {
     }
 
     pub async fn list_vaults(&mut self) -> Result<Vec<VaultPreview>, Error> {
-        let vault_previews = self.database.list_vault_previews()
+        let vault_previews = self
+            .database
+            .list_vault_previews()
             .await?
             .into_iter()
             .map(|record| record.into_vault_preview())
@@ -207,11 +214,19 @@ impl Store {
     pub async fn get_vault(&mut self, id: i64) -> Result<Option<Vault>, Error> {
         match self.database.find_vault(id).await? {
             Some(vault_record) => {
-                let enc_vault_key = self.database.find_key(vault_record.key_id).await?.ok_or(Error::KeyDoesNotExist)?.into_encrypted_key();
-                let vault_key = VaultKey::new(self.master_key.as_ref().unwrap().clone(), enc_vault_key);
+                let enc_vault_key = self
+                    .database
+                    .find_key(vault_record.key_id)
+                    .await?
+                    .ok_or(Error::KeyDoesNotExist)?
+                    .into_encrypted_key();
+                let vault_key =
+                    VaultKey::new(self.master_key.as_ref().unwrap().clone(), enc_vault_key);
 
-                Ok(Some(vault_record.into_vault(vault_key, self.database.clone())))
-            },
+                Ok(Some(
+                    vault_record.into_vault(vault_key, self.database.clone()),
+                ))
+            }
             None => Ok(None),
         }
     }
@@ -227,7 +242,10 @@ mod tests {
     #[sqlx::test(migrator = "MIGRATOR")]
     async fn can_create_vault(pool: SqlitePool) {
         let mut store = Store::from_pool(pool).unwrap();
-        store.initialize_profile("User".into(), "password".into()).await.unwrap();
+        store
+            .initialize_profile("User".into(), "password".into())
+            .await
+            .unwrap();
 
         let vault_name = String::from("my vault");
         let vault = store.create_vault(vault_name.clone()).await.unwrap();

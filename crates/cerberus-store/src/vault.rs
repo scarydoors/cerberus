@@ -5,7 +5,10 @@ use rand::rngs::OsRng;
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{
-    crypto::{Cipher, EncryptedData, EncryptedKey, SecureKey, SymmetricKey}, database::{Database, Repository}, item::{Item, ItemData, ItemOverview, ItemPreview}, Error
+    crypto::{Cipher, EncryptedData, EncryptedKey, SecureKey, SymmetricKey},
+    database::{Database, Repository},
+    item::{Item, ItemData, ItemOverview, ItemPreview},
+    Error,
 };
 
 #[derive(Debug, Clone)]
@@ -31,13 +34,19 @@ impl VaultKey {
 }
 
 impl Cipher for VaultKey {
-    fn encrypt<T: Serialize + DeserializeOwned>(&self, data: &T) -> Result<EncryptedData<T>, Error> {
+    fn encrypt<T: Serialize + DeserializeOwned>(
+        &self,
+        data: &T,
+    ) -> Result<EncryptedData<T>, Error> {
         let key = self.get_symmetric_key()?;
 
         Ok(key.encrypt(data)?)
     }
 
-    fn decrypt<T: Serialize + DeserializeOwned>(&self, data: &EncryptedData<T>) -> Result<T, Error> {
+    fn decrypt<T: Serialize + DeserializeOwned>(
+        &self,
+        data: &EncryptedData<T>,
+    ) -> Result<T, Error> {
         let key = self.get_symmetric_key()?;
 
         Ok(key.decrypt(data)?)
@@ -73,7 +82,11 @@ impl Vault {
         }
     }
 
-    pub async fn create_item(&self, item_overview: ItemOverview, item_data: ItemData) -> Result<Item, Error> {
+    pub async fn create_item(
+        &self,
+        item_overview: ItemOverview,
+        item_data: ItemData,
+    ) -> Result<Item, Error> {
         let overview_key = SymmetricKey::generate(&mut OsRng);
         let data_key = SymmetricKey::generate(&mut OsRng);
 
@@ -84,24 +97,34 @@ impl Vault {
         let vault_key = self.vault_key.clone();
         let database = self.database.clone();
 
-        let item = self.database.transaction(|mut transaction| {
-            Box::pin(async move {
-                let mut enc_overview_key = overview_key.into_encrypted_key(&vault_key);
-                enc_overview_key.store(&mut transaction).await?;
-                let mut enc_data_key = data_key.into_encrypted_key(&vault_key);
-                enc_data_key.store(&mut transaction).await?;
+        let item = self
+            .database
+            .transaction(|mut transaction| {
+                Box::pin(async move {
+                    let mut enc_overview_key = overview_key.into_encrypted_key(&vault_key);
+                    enc_overview_key.store(&mut transaction).await?;
+                    let mut enc_data_key = data_key.into_encrypted_key(&vault_key);
+                    enc_data_key.store(&mut transaction).await?;
 
-                let item_record = transaction.store_item(
-                    id,
-                    &enc_item_overview,
-                    enc_overview_key.id().unwrap(),
-                    &enc_item_data,
-                    enc_data_key.id().unwrap()
-                ).await?;
+                    let item_record = transaction
+                        .store_item(
+                            id,
+                            &enc_item_overview,
+                            enc_overview_key.id().unwrap(),
+                            &enc_item_data,
+                            enc_data_key.id().unwrap(),
+                        )
+                        .await?;
 
-                Ok::<_, Error>(item_record.into_item(enc_overview_key, enc_data_key, vault_key, database))
+                    Ok::<_, Error>(item_record.into_item(
+                        enc_overview_key,
+                        enc_data_key,
+                        vault_key,
+                        database,
+                    ))
+                })
             })
-        }).await?;
+            .await?;
 
         Ok(item)
     }
@@ -115,7 +138,9 @@ impl Vault {
     pub async fn list_items(&mut self) -> Result<Vec<ItemPreview>, Error> {
         let vault_key = self.vault_key.get_symmetric_key()?;
 
-        let item_previews = self.database.list_item_previews(Some(self.id))
+        let item_previews = self
+            .database
+            .list_item_previews(Some(self.id))
             .await?
             .into_iter()
             .map(|record| record.try_into_item_preview(&vault_key))
@@ -144,10 +169,7 @@ pub struct VaultPreview {
 
 impl VaultPreview {
     pub(crate) fn new(id: i64, name: String) -> Self {
-        Self {
-            id,
-            name,
-        }
+        Self { id, name }
     }
 
     pub fn id(&self) -> i64 {

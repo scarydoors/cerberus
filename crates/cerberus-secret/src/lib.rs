@@ -1,9 +1,12 @@
-use serde::{de::{self}, Deserialize, Serialize, Serializer};
+use serde::{
+    de::{self},
+    Deserialize, Serialize, Serializer,
+};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 #[derive(Zeroize, ZeroizeOnDrop)]
 pub struct SecretBox<T: Zeroize + ?Sized> {
-    inner_secret: Box<T>
+    inner_secret: Box<T>,
 }
 
 impl<T: Zeroize + ?Sized> From<Box<T>> for SecretBox<T> {
@@ -15,14 +18,16 @@ impl<T: Zeroize + ?Sized> From<Box<T>> for SecretBox<T> {
 impl<T: Zeroize + ?Sized> SecretBox<T> {
     pub fn new(boxed_secret: Box<T>) -> Self {
         Self {
-            inner_secret: boxed_secret
+            inner_secret: boxed_secret,
         }
     }
 }
 
 impl<T: Zeroize + Clone> Clone for SecretBox<T> {
     fn clone(&self) -> Self {
-        Self { inner_secret: self.inner_secret.clone() }
+        Self {
+            inner_secret: self.inner_secret.clone(),
+        }
     }
 }
 
@@ -31,17 +36,19 @@ pub type SecretSlice<S> = SecretBox<[S]>;
 impl<S> Clone for SecretSlice<S>
 where
     S: Clone + Zeroize,
-    [S]: Zeroize
+    [S]: Zeroize,
 {
     fn clone(&self) -> Self {
-        Self { inner_secret: self.inner_secret.clone() }
+        Self {
+            inner_secret: self.inner_secret.clone(),
+        }
     }
 }
 
 impl<S> From<Vec<S>> for SecretSlice<S>
 where
     S: Zeroize,
-    [S]: Zeroize
+    [S]: Zeroize,
 {
     fn from(value: Vec<S>) -> Self {
         Self::from(value.into_boxed_slice())
@@ -50,7 +57,9 @@ where
 
 impl<T: Zeroize + ?Sized> std::fmt::Debug for SecretBox<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("SecretBox").field("inner_secret", &"REDACTED").finish()
+        f.debug_struct("SecretBox")
+            .field("inner_secret", &"REDACTED")
+            .finish()
     }
 }
 
@@ -77,7 +86,7 @@ impl<T: Zeroize + ?Sized> ExposeSecretMut<T> for SecretBox<T> {
 impl<T: Zeroize + ?Sized + Serialize> Serialize for SecretBox<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: Serializer
+        S: Serializer,
     {
         self.expose_secret().serialize(serializer)
     }
@@ -86,12 +95,12 @@ impl<T: Zeroize + ?Sized + Serialize> Serialize for SecretBox<T> {
 impl<'de, T: Zeroize + de::DeserializeOwned + Clone> Deserialize<'de> for SecretBox<T> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
-        D: de::Deserializer<'de>
+        D: de::Deserializer<'de>,
     {
-            let mut data = T::deserialize(deserializer)?;
-            let secret_box = Self::from(Box::new(data.clone()));
-            data.zeroize();
-            Ok(secret_box)
+        let mut data = T::deserialize(deserializer)?;
+        let secret_box = Self::from(Box::new(data.clone()));
+        data.zeroize();
+        Ok(secret_box)
     }
 }
 
@@ -102,7 +111,7 @@ where
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
-        D: de::Deserializer<'de>
+        D: de::Deserializer<'de>,
     {
         let data = Vec::deserialize(deserializer)?;
         let secret_box = Self::from(data.into_boxed_slice());
