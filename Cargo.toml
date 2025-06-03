@@ -5,7 +5,9 @@ members = [
   "crates/cerberus-store",
   "crates/cerberus-tauri",
   "crates/cerberus-crypto",
-  "crates/cerberus-macros", "crates/cerberus-serde", "crates/cerberus-secret",
+  "crates/cerberus-macros",
+  "crates/cerberus-serde",
+  "crates/cerberus-secret",
 ]
 resolver = "2"
 
