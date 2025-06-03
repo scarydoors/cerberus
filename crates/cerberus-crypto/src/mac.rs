@@ -1,14 +1,15 @@
-use chacha20poly1305::KeyInit;
-use hmac::{Hmac, Mac};
-use serde::{Deserialize, Serialize};
+use hmac::{digest::CtOutput, Hmac, Mac};
 use sha2::Sha256;
-use cerberus_secret::SecretSlice;
+use cerberus_secret::{ExposeSecret, SecretSlice};
+use crate::Result;
 
 pub use cerberus_macros::UpdateHmac;
 
+use crate::KeyIdentifier;
+
 pub(crate) type HmacSha256 = Hmac<Sha256>;
 
-pub trait UpdateHmac<M: Mac + KeyInit = HmacSha256> {
+pub trait UpdateHmac<M: Mac = HmacSha256> {
     fn update_hmac(&self, hmac: &mut impl Mac);
 
 }
@@ -24,15 +25,36 @@ pub trait UpdateHmac<M: Mac + KeyInit = HmacSha256> {
 //        self.update_hmac(&mut mac);
 //        mac.finalize()
 //    }
-#[derive(Debug, Clone, Serialize, Deserialize)]
+
+#[derive(Debug, Clone)]
 pub struct HmacKey {
-    key: SecretSlice<u8>
+    key: SecretSlice<u8>,
+    id: KeyIdentifier,
 }
 
 impl HmacKey {
-    pub fn new(key: Vec<u8>) -> Self {
+    pub const KEY_SIZE: usize = 32;
+
+    pub fn new(key: SecretSlice<u8>, id: KeyIdentifier) -> Self {
         Self {
-            key: key.into()
+            key,
+            id
         }
+    }
+
+    pub fn verify_tag(&self, data: impl UpdateHmac, tag: &[u8]) -> Result<()> {
+        let mut mac = self.init_hmac();
+        data.update_hmac(&mut mac);
+        Ok(mac.verify(tag.into())?)
+    }
+
+    pub fn compute_tag(&self, data: impl UpdateHmac) -> CtOutput<HmacSha256> {
+        let mut mac = self.init_hmac();
+        data.update_hmac(&mut mac);
+        mac.finalize()
+    }
+
+    fn init_hmac(&self) -> HmacSha256 {
+        HmacSha256::new_from_slice(self.key.expose_secret()).expect("HMAC should accept keys of any size")
     }
 }

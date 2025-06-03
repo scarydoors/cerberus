@@ -63,10 +63,30 @@ pub enum KeyIdentifier {
     Local,
     Uuid(Uuid),
     #[serde(serialize_with = "forbid_derived_serialization")]
-    Derived(String),
+    Derived {
+        context: String,
+        derived_from: Option<Box<KeyIdentifier>>
+    },
 }
 
-fn forbid_derived_serialization<S: serde::Serializer>(_: &String, _serializer: S) -> std::result::Result<S::Ok, S::Error> {
+impl KeyIdentifier {
+    pub fn local() -> Self {
+        KeyIdentifier::Local
+    }
+
+    pub fn uuid() -> Self {
+        KeyIdentifier::Uuid(Uuid::new_v4())
+    }
+
+    pub fn derived(context: String, derived_from: Option<KeyIdentifier>) -> Self {
+        KeyIdentifier::Derived {
+            context,
+            derived_from: derived_from.map(|ident| Box::new(ident))
+        }
+    }
+}
+
+fn forbid_derived_serialization<S: serde::Serializer>(_: &str, _: &Option<Box<KeyIdentifier>>, _serializer: S) -> std::result::Result<S::Ok, S::Error> {
     Err(serde::ser::Error::custom(Error::DerivedKeySerialization))
 }
 
@@ -78,9 +98,11 @@ pub struct SymmetricKey {
 }
 
 impl SymmetricKey {
-    pub fn new(key: Vec<u8>, id: KeyIdentifier) -> Self {
+    pub const KEY_SIZE: usize = 32;
+
+    pub fn new(key: SecretSlice<u8>, id: KeyIdentifier) -> Self {
         Self {
-            key: key.into(),
+            key,
             id
         }
     }
