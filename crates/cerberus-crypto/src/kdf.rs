@@ -24,6 +24,10 @@ fn build_info(label: &str, suffix: &str) -> String {
     format!("{}{}", label, suffix)
 }
 
+trait DeriveKey: NewKey {
+    const MAC_INFO_SUFFIX: &'static str;
+}
+
 impl DerivationMaterial {
     const SYMMETRIC_SUFFIX: &'static str = "_symmetric_key";
     const HMAC_SUFFIX: &'static str = "_hmac_key";
