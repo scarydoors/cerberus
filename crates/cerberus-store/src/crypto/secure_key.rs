@@ -1,6 +1,6 @@
 use super::{Cipher, EncryptedData, EncryptedKey, SymmetricKey};
 use crate::Error;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 
 pub(crate) enum SecureKeyState {
     Locked,

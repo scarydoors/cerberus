@@ -1,15 +1,15 @@
 use std::marker::PhantomData;
 
 use argon2::{
-    password_hash::{PasswordHasher, Salt, SaltString},
     Argon2,
+    password_hash::{PasswordHasher, Salt, SaltString},
 };
 use cerberus_secret::{ExposeSecret, SecretSlice};
 use cerberus_serde::{base64, base64_expose_secret};
-use chacha20poly1305::{aead::Aead, AeadCore, KeyInit, XChaCha20Poly1305};
+use chacha20poly1305::{AeadCore, KeyInit, XChaCha20Poly1305, aead::Aead};
 use kdf::DeriveKey;
-use rand::{rngs::OsRng, CryptoRng, RngCore};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use rand::{CryptoRng, RngCore, rngs::OsRng};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use uuid::Uuid;
 
 pub mod kdf;

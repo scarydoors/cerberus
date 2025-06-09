@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, DeriveInput, Field};
+use syn::{DeriveInput, Field, parse_macro_input};
 
 #[proc_macro_derive(UpdateHmac, attributes(hmac))]
 pub fn derive_update_hmac(input: TokenStream) -> TokenStream {

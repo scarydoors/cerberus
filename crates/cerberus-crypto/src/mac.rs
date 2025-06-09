@@ -1,6 +1,6 @@
-use crate::{kdf::DeriveKey, NewKey, Result};
+use crate::{NewKey, Result, kdf::DeriveKey};
 use cerberus_secret::{ExposeSecret, SecretSlice};
-use hmac::{digest::CtOutput, Hmac, Mac};
+use hmac::{Hmac, Mac, digest::CtOutput};
 use sha2::Sha256;
 
 pub use cerberus_macros::UpdateHmac;

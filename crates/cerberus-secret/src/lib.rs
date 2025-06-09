@@ -1,6 +1,6 @@
 use serde::{
-    de::{self},
     Deserialize, Serialize, Serializer,
+    de::{self},
 };
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
