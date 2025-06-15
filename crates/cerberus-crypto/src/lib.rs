@@ -5,15 +5,15 @@ use argon2::{
     Argon2,
 };
 use cerberus_secret::{ExposeSecret, SecretSlice};
-use cerberus_serde::{base64, base64_expose_secret};
-use chacha20poly1305::{aead::Aead, AeadCore, KeyInit, XChaCha20Poly1305};
-use kdf::DeriveKey;
+use cerberus_serde::base64;
 use rand::{rngs::OsRng, CryptoRng, RngCore};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use thiserror::Error;
 use uuid::Uuid;
 
 pub mod kdf;
 pub mod mac;
+pub mod symmetric;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -28,24 +28,18 @@ pub enum Error {
 
     #[error("hmac error: {0}")]
     Hmac(#[from] hmac::digest::MacError),
-
-    #[error("derived keys must not be serialized")]
-    DerivedKeySerialization,
-
-    #[error("invalid key length, expected: {expected}, actual: {actual}")]
-    InvalidKeyLength { actual: usize, expected: usize },
 }
 
 pub trait Cipher {
-    fn encrypt<T: Serialize>(&self, data: &T) -> Result<EncryptedData<T>>;
-    fn decrypt<T: DeserializeOwned>(&self, data: &EncryptedData<T>) -> Result<T>;
+    type Error;
+
+    fn encrypt<T: Serialize>(&self, data: &T) -> Result<EncryptedData<T>, Self::Error>;
+    fn decrypt<T: DeserializeOwned>(&self, data: &EncryptedData<T>) -> Result<T, Self::Error>;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(transparent)]
 struct Nonce(#[serde(with = "base64")] [u8; 24]);
-
-type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EncryptedData<T> {
@@ -85,6 +79,24 @@ impl KeyIdentifier {
             derived_from: derived_from.map(Box::new),
         }
     }
+
+    pub fn compare_identifier(&self, other_key_id: &KeyIdentifier) -> Result<(), KeyMismatchError> {
+        if self == other_key_id {
+            Ok(())
+        } else {
+            Err(KeyMismatchError {
+                left: self.clone(),
+                right: other_key_id.clone()
+            })
+        }
+    }
+}
+
+#[derive(Error, Debug)]
+#[error("key identifier mismatch, left: {left:?}, right: {right:?}")]
+pub struct KeyMismatchError {
+    left: KeyIdentifier,
+    right: KeyIdentifier
 }
 
 fn forbid_derived_serialization<S: serde::Serializer>(
@@ -95,12 +107,16 @@ fn forbid_derived_serialization<S: serde::Serializer>(
     Err(serde::ser::Error::custom(Error::DerivedKeySerialization))
 }
 
+#[derive(Error, Debug)]
+#[error("derived keys must not be serialized")]
+pub struct SerializeDeriveKeyError;
+
 pub trait NewKey: Sized {
     const KEY_SIZE: usize;
 
     fn new_unchecked(key: SecretSlice<u8>, id: KeyIdentifier) -> Self;
 
-    fn new(key: SecretSlice<u8>, id: KeyIdentifier) -> Result<Self> {
+    fn new(key: SecretSlice<u8>, id: KeyIdentifier) -> Result<Self, InvalidKeySizeError> {
         let key_len = key.expose_secret().len();
         if key_len == Self::KEY_SIZE {
             Ok(Self::new_unchecked(key, id))
@@ -121,87 +137,13 @@ pub trait NewKey: Sized {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SymmetricKey {
-    #[serde(with = "base64_expose_secret")]
-    key: SecretSlice<u8>,
-    id: KeyIdentifier,
+#[derive(thiserror::Error, Debug)]
+#[error("invalid key length, expected: {expected}, actual: {actual}")]
+pub struct InvalidKeySizeError {
+    expected: usize,
+    actual: usize
 }
 
-impl SymmetricKey {
-    pub fn id(&self) -> &KeyIdentifier {
-        &self.id
-    }
-}
-
-impl NewKey for SymmetricKey {
-    const KEY_SIZE: usize = 32;
-
-    fn new_unchecked(key: SecretSlice<u8>, id: KeyIdentifier) -> Self {
-        Self { key, id }
-    }
-}
-
-impl DeriveKey for SymmetricKey {
-    const MAC_INFO_SUFFIX: &'static str = "_symmmetric_key";
-}
-
-impl Cipher for SymmetricKey {
-    fn encrypt<T: Serialize>(&self, data: &T) -> Result<EncryptedData<T>> {
-        let data = serde_json::to_string(&data)?;
-
-        let cipher = XChaCha20Poly1305::new(self.key.expose_secret().into());
-        let nonce = XChaCha20Poly1305::generate_nonce(&mut OsRng);
-        let encrypted_data = cipher.encrypt(&nonce, data.as_bytes())?;
-
-        Ok(EncryptedData {
-            encrypted_data,
-            key_id: self.id.clone(),
-            nonce: Nonce(nonce.into()),
-            _phantom: PhantomData,
-        })
-    }
-
-    fn decrypt<T: DeserializeOwned>(&self, encrypted_data: &EncryptedData<T>) -> Result<T> {
-        let cipher = XChaCha20Poly1305::new(self.key.expose_secret().into());
-        let decrypted_data = cipher.decrypt(
-            &encrypted_data.nonce.0.into(),
-            encrypted_data.encrypted_data.as_slice(),
-        )?;
-
-        let data = serde_json::from_slice(&decrypted_data)?;
-        Ok(data)
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Envelope<T> {
-    data: EncryptedData<T>,
-    dek: EncryptedData<SymmetricKey>,
-}
-
-impl<T> Envelope<T>
-where
-    T: Serialize + DeserializeOwned,
-{
-    pub fn seal(kek: &impl Cipher, data: &T) -> Result<Self> {
-        let dek = SymmetricKey::generate(&mut OsRng, KeyIdentifier::local());
-        let data = dek.encrypt(data)?;
-        let dek_encrypted = kek.encrypt(&dek)?;
-
-        Ok(Self {
-            data,
-            dek: dek_encrypted,
-        })
-    }
-
-    pub fn open(&self, kek: &impl Cipher) -> Result<T> {
-        let dek: SymmetricKey = kek.decrypt(&self.dek)?;
-        let data = dek.decrypt(&self.data)?;
-
-        Ok(data)
-    }
-}
 
 pub fn generate_salt() -> String {
     SaltString::generate(&mut OsRng).to_string()
