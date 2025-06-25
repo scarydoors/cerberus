@@ -104,7 +104,7 @@ fn forbid_derived_serialization<S: serde::Serializer>(
     _: &Option<Box<KeyIdentifier>>,
     _serializer: S,
 ) -> std::result::Result<S::Ok, S::Error> {
-    Err(serde::ser::Error::custom(Error::DerivedKeySerialization))
+    Err(serde::ser::Error::custom(SerializeDeriveKeyError))
 }
 
 #[derive(Error, Debug)]
@@ -121,7 +121,7 @@ pub trait NewKey: Sized {
         if key_len == Self::KEY_SIZE {
             Ok(Self::new_unchecked(key, id))
         } else {
-            Err(Error::InvalidKeyLength {
+            Err(InvalidKeySizeError {
                 actual: key_len,
                 expected: Self::KEY_SIZE,
             })

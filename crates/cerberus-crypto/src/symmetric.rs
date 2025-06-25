@@ -38,7 +38,7 @@ impl Cipher for SymmetricKey {
     type Error = SymmetricKeyError;
 
     fn encrypt<T: Serialize>(&self, data: &T) -> Result<EncryptedData<T>, Self::Error> {
-        let data = serde_json::to_string(&data).map_err(|_| SymmetricKeyError::SerializationError);
+        let data = serde_json::to_string(&data).map_err(|_| SymmetricKeyError::SerializationError)?;
 
         let cipher = XChaCha20Poly1305::new(self.key.expose_secret().into());
         let nonce = XChaCha20Poly1305::generate_nonce(&mut OsRng);
@@ -59,7 +59,7 @@ impl Cipher for SymmetricKey {
             encrypted_data.encrypted_data.as_slice(),
         )?;
 
-        let data = serde_json::from_slice(&decrypted_data).map_err(|_| SymmetricKeyError::SerializationError);
+        let data = serde_json::from_slice(&decrypted_data).map_err(|_| SymmetricKeyError::SerializationError)?;
         Ok(data)
     }
 }
@@ -75,7 +75,7 @@ pub enum SymmetricKeyError {
     SerializationError,
 
     #[error("failed symmetric key operation")]
-    CipherError
+    CipherError(#[from] chacha20poly1305::Error)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
