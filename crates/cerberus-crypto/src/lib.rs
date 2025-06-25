@@ -94,7 +94,7 @@ impl KeyIdentifier {
         }
     }
 
-    pub fn compare_identifier(&self, other_key_id: &KeyIdentifier) -> Result<(), KeyMismatchError> {
+    pub fn verify_identifier(&self, other_key_id: &KeyIdentifier) -> Result<(), KeyMismatchError> {
         if self == other_key_id {
             Ok(())
         } else {
