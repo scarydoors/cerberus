@@ -90,3 +90,29 @@ where
         Ok(data)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(Serialize, Deserialize)]
+    struct SecretOwned {
+        data: String,
+    }
+
+    #[test]
+    fn it_works() {
+        let master_key =
+            SymmetricKey::generate(&mut OsRng, KeyIdentifier::derived("coolkey".into(), None));
+
+        let envelope = Envelope::seal(
+            &master_key,
+            &SecretOwned {
+                data: String::from("what"),
+            },
+        )
+        .unwrap();
+
+        let decrypted = envelope.open(&master_key).unwrap();
+    }
+}
