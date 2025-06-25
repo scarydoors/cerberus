@@ -17,21 +17,6 @@ pub mod kdf;
 pub mod mac;
 pub mod symmetric;
 
-#[derive(thiserror::Error, Debug)]
-pub enum Error {
-    #[error("serialization failed: {0}")]
-    Serialization(#[from] serde_json::Error),
-
-    #[error("encryption failed: {0}")]
-    Encryption(#[from] chacha20poly1305::Error),
-
-    #[error("hashing failed: {0}")]
-    Hashing(#[from] argon2::password_hash::Error),
-
-    #[error("hmac error: {0}")]
-    Hmac(#[from] hmac::digest::MacError),
-}
-
 pub trait Cipher {
     fn encrypt<T: Serialize>(&self, data: &T) -> Result<EncryptedData<T>, CipherError>;
     fn decrypt<T: DeserializeOwned>(&self, data: &EncryptedData<T>) -> Result<T, CipherError>;

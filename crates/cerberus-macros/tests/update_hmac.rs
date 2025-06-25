@@ -1,6 +1,5 @@
 use cerberus_crypto::mac::UpdateHmac;
 use cerberus_macros::UpdateHmac as UpdateHmacDerive;
-use hmac::digest::KeyInit;
 
 #[allow(dead_code)]
 #[derive(UpdateHmacDerive)]
