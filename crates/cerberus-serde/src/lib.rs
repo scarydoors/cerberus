@@ -1,8 +1,8 @@
 pub mod base64 {
-    use base64::{engine, Engine};
+    use base64::{Engine, engine};
     use serde::{
-        de::{Deserializer, Visitor},
         Serialize, Serializer,
+        de::{Deserializer, Visitor},
     };
     use std::marker::PhantomData;
 
@@ -37,11 +37,7 @@ pub mod base64 {
                     .decode(v)
                     .map_err(E::custom)?
                     .try_into()
-                    .map_err(|_| {
-                        E::custom(
-                            "Failed to convert base64 decoded data to target type"
-                        )
-                    })
+                    .map_err(|_| E::custom("Failed to convert base64 decoded data to target type"))
             }
         }
 

@@ -1,6 +1,6 @@
 use crate::{kdf::DeriveKey, NewKey};
 use cerberus_secret::{ExposeSecret, SecretSlice};
-use hmac::{digest::CtOutput, Hmac, Mac};
+use hmac::{Hmac, Mac, digest::CtOutput};
 use sha2::Sha256;
 
 pub use cerberus_macros::UpdateHmac;
@@ -47,7 +47,7 @@ impl HmacKey {
 
 #[derive(Debug, Error)]
 #[error("mac mismatch")]
-pub struct InvalidMacError;
+pub struct InvalidMacError(#[from] hmac::digest::MacError);
 
 impl NewKey for HmacKey {
     const KEY_SIZE: usize = 32;

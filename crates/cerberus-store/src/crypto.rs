@@ -1,6 +1,6 @@
 use crate::Error;
 use rand::rngs::OsRng;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 use std::marker::PhantomData;
 
@@ -39,10 +39,10 @@ impl<T: Serialize + DeserializeOwned> EncryptedData<T> {
 
 pub(crate) trait Cipher {
     fn encrypt<T: Serialize + DeserializeOwned>(&self, data: &T)
-        -> Result<EncryptedData<T>, Error>;
+    -> Result<EncryptedData<T>, Error>;
 
     fn decrypt<T: Serialize + DeserializeOwned>(&self, data: &EncryptedData<T>)
-        -> Result<T, Error>;
+    -> Result<T, Error>;
 }
 
 pub(crate) struct EncryptedDataKeyPair<T: Serialize + DeserializeOwned> {

@@ -1,14 +1,16 @@
 use std::marker::PhantomData;
 
 use argon2::{
-    password_hash::{PasswordHasher, Salt, SaltString},
     Argon2,
+    password_hash::{PasswordHasher, Salt, SaltString},
 };
 use cerberus_secret::{ExposeSecret, SecretSlice};
 use cerberus_serde::base64;
 use rand::{rngs::OsRng, CryptoRng, RngCore};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use thiserror::Error;
+use chacha20poly1305::KeyInit;
+
 use uuid::Uuid;
 
 pub mod kdf;
@@ -31,10 +33,22 @@ pub enum Error {
 }
 
 pub trait Cipher {
-    type Error;
+    fn encrypt<T: Serialize>(&self, data: &T) -> Result<EncryptedData<T>, CipherError>;
+    fn decrypt<T: DeserializeOwned>(&self, data: &EncryptedData<T>) -> Result<T, CipherError>;
+}
 
-    fn encrypt<T: Serialize>(&self, data: &T) -> Result<EncryptedData<T>, Self::Error>;
-    fn decrypt<T: DeserializeOwned>(&self, data: &EncryptedData<T>) -> Result<T, Self::Error>;
+#[derive(Error, Debug)]
+pub enum CipherError {
+    #[error(transparent)]
+    KeyMismatch(#[from] KeyMismatchError),
+    // below type is opaque because the serialization covers the sensitive data
+    // and it is not desirable to reveal information about it in logs and such
+    // through a potential error
+    #[error("unable to serialize/deserialize sensitive data")]
+    SerializationError,
+
+    #[error("failed cipher operation")]
+    OperationFailed
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

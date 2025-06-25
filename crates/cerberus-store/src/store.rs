@@ -1,9 +1,9 @@
+use crate::Error;
 use crate::crypto::{SecureKey, SecureKeyState, SymmetricKey};
 use crate::database::Database;
 use crate::database::Repository;
 use crate::generate_salt;
 use crate::vault::{Vault, VaultKey, VaultPreview};
-use crate::Error;
 use chrono::DateTime;
 use chrono::Utc;
 use rand::rngs::OsRng;

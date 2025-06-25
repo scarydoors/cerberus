@@ -2,10 +2,10 @@ use std::pin::Pin;
 use std::{future::Future, path::Path};
 
 use sqlx::Error as SqlxError;
-use sqlx::{sqlite::SqliteConnectOptions, types::Json, Executor, Sqlite, SqlitePool, Transaction};
+use sqlx::{Executor, Sqlite, SqlitePool, Transaction, sqlite::SqliteConnectOptions, types::Json};
 
 use crate::item::{ItemData, ItemOverview};
-use crate::{crypto::EncryptedData, Error};
+use crate::{Error, crypto::EncryptedData};
 
 pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
 
@@ -235,10 +235,7 @@ impl Database {
 
         let pool = SqlitePool::connect_with(options).await?;
 
-        MIGRATOR
-            .run(&pool)
-            .await
-            .map_err(sqlx::Error::from)?;
+        MIGRATOR.run(&pool).await.map_err(sqlx::Error::from)?;
 
         Ok(Self { pool })
     }

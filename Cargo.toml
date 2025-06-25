@@ -28,5 +28,8 @@ cerberus-crypto = { path = "crates/cerberus-crypto" }
 cerberus-macros = { path = "crates/cerberus-macros" }
 cerberus-secret = { path = "crates/cerberus-secret" }
 
+[workspace.package]
+edition = "2024"
+
 [profile.dev.package.sqlx-macros]
 opt-level = 3

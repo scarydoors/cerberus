@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::{crypto::EncryptedDataKeyPair, database::Database, vault::VaultKey, Error};
+use crate::{Error, crypto::EncryptedDataKeyPair, database::Database, vault::VaultKey};
 
 pub struct Item {
     id: i64,

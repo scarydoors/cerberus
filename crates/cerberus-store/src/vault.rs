@@ -2,13 +2,13 @@ use std::sync::{Arc, Mutex};
 
 use chrono::{DateTime, Utc};
 use rand::rngs::OsRng;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 
 use crate::{
+    Error,
     crypto::{Cipher, EncryptedData, EncryptedKey, SecureKey, SymmetricKey},
     database::{Database, Repository},
     item::{Item, ItemData, ItemOverview, ItemPreview},
-    Error,
 };
 
 #[derive(Debug, Clone)]

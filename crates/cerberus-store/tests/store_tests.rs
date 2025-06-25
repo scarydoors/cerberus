@@ -1,5 +1,5 @@
-use cerberus_store::item::{ItemData, ItemOverview};
 use cerberus_store::Store;
+use cerberus_store::item::{ItemData, ItemOverview};
 use sqlx::SqlitePool;
 
 static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");

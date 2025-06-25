@@ -1,11 +1,11 @@
 use super::{Cipher, EncryptedData, EncryptedKey};
-use crate::{hash_password, Error};
+use crate::{Error, hash_password};
 use chacha20poly1305::{
-    aead::{Aead, AeadCore, KeyInit},
     XChaCha20Poly1305,
+    aead::{Aead, AeadCore, KeyInit},
 };
-use rand::{rngs::OsRng, CryptoRng, RngCore};
-use serde::{de::DeserializeOwned, Serialize};
+use rand::{CryptoRng, RngCore, rngs::OsRng};
+use serde::{Serialize, de::DeserializeOwned};
 use std::marker::PhantomData;
 
 #[derive(Debug, Clone)]

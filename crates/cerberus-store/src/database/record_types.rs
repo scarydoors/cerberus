@@ -2,11 +2,11 @@ use chrono::NaiveDateTime;
 use sqlx::types::Json;
 
 use crate::{
+    Error,
     crypto::{Cipher, EncryptedData, EncryptedDataKeyPair, EncryptedKey},
     item::{Item, ItemData, ItemOverview, ItemPreview},
     store::Profile,
     vault::{Vault, VaultKey, VaultPreview},
-    Error,
 };
 
 use super::Database;

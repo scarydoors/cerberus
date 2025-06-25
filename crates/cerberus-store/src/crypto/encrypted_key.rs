@@ -1,6 +1,6 @@
 use super::{Cipher, EncryptedData, SymmetricKey};
-use crate::database::Repository;
 use crate::Error;
+use crate::database::Repository;
 
 #[derive(Debug, Clone)]
 pub(crate) struct EncryptedKey {

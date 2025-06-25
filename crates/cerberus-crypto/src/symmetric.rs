@@ -1,13 +1,12 @@
 use std::marker::PhantomData;
 use rand::rngs::OsRng;
-use thiserror::Error;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use chacha20poly1305::{aead::Aead, AeadCore, KeyInit, XChaCha20Poly1305};
 
 use cerberus_secret::{ExposeSecret, SecretSlice};
 use cerberus_serde::base64_expose_secret;
 
-use crate::{kdf::DeriveKey, Cipher, EncryptedData, KeyIdentifier, KeyMismatchError, NewKey, Nonce};
+use crate::{kdf::DeriveKey, Cipher, CipherError, EncryptedData, KeyIdentifier, NewKey, Nonce};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SymmetricKey {
@@ -35,14 +34,13 @@ impl DeriveKey for SymmetricKey {
 }
 
 impl Cipher for SymmetricKey {
-    type Error = SymmetricKeyError;
-
-    fn encrypt<T: Serialize>(&self, data: &T) -> Result<EncryptedData<T>, Self::Error> {
-        let data = serde_json::to_string(&data).map_err(|_| SymmetricKeyError::SerializationError)?;
+    fn encrypt<T: Serialize>(&self, data: &T) -> Result<EncryptedData<T>, CipherError> {
+        let data = serde_json::to_string(&data).map_err(|_| CipherError::SerializationError)?;
 
         let cipher = XChaCha20Poly1305::new(self.key.expose_secret().into());
         let nonce = XChaCha20Poly1305::generate_nonce(&mut OsRng);
-        let encrypted_data = cipher.encrypt(&nonce, data.as_bytes())?;
+        let encrypted_data = cipher.encrypt(&nonce, data.as_bytes())
+            .map_err(|_| CipherError::OperationFailed)?;
 
         Ok(EncryptedData {
             encrypted_data,
@@ -52,30 +50,16 @@ impl Cipher for SymmetricKey {
         })
     }
 
-    fn decrypt<T: DeserializeOwned>(&self, encrypted_data: &EncryptedData<T>) -> Result<T, Self::Error> {
+    fn decrypt<T: DeserializeOwned>(&self, encrypted_data: &EncryptedData<T>) -> Result<T, CipherError> {
         let cipher = XChaCha20Poly1305::new(self.key.expose_secret().into());
         let decrypted_data = cipher.decrypt(
             &encrypted_data.nonce.0.into(),
             encrypted_data.encrypted_data.as_slice(),
-        )?;
+        ).map_err(|_| CipherError::OperationFailed)?;
 
-        let data = serde_json::from_slice(&decrypted_data).map_err(|_| SymmetricKeyError::SerializationError)?;
+        let data = serde_json::from_slice(&decrypted_data).map_err(|_| CipherError::SerializationError)?;
         Ok(data)
     }
-}
-
-#[derive(Error, Debug)]
-pub enum SymmetricKeyError {
-    #[error(transparent)]
-    KeyMismatch(#[from] KeyMismatchError),
-    // below type is opaque because the serialization covers the sensitive data
-    // and it is not desirable to reveal information about it in logs and such
-    // through a potential error
-    #[error("unable to serialize/deserialize sensitive data")]
-    SerializationError,
-
-    #[error("failed symmetric key operation")]
-    CipherError(#[from] chacha20poly1305::Error)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -88,7 +72,7 @@ impl<T> Envelope<T>
 where
     T: Serialize + DeserializeOwned,
 {
-    pub fn seal(kek: &impl Cipher, data: &T) -> Result<Self> {
+    pub fn seal(kek: &impl Cipher, data: &T) -> Result<Self, CipherError> {
         let dek = SymmetricKey::generate(&mut OsRng, KeyIdentifier::local());
         let data = dek.encrypt(data)?;
         let dek_encrypted = kek.encrypt(&dek)?;
@@ -99,7 +83,7 @@ where
         })
     }
 
-    pub fn open(&self, kek: &impl Cipher) -> Result<T> {
+    pub fn open(&self, kek: &impl Cipher) -> Result<T, CipherError> {
         let dek: SymmetricKey = kek.decrypt(&self.dek)?;
         let data = dek.decrypt(&self.data)?;
 
